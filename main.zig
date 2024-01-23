@@ -32,19 +32,46 @@ const Vec2   = @Vector(2, f32);
 // Constants
 // UI Colors
 const BLACK     = rlc(  0,   0,   0);
+const DARKGRAY  = rlc( 40,  40,  40);
+const LIGHTGRAY = rlc(200, 200, 200);
 const WHITE     = rlc(255, 255, 255);
 
-const background_color = BLACK;
+
 
 const initial_screen_width = 1902;
 const initial_screen_hidth = 1080;
 const WINDOW_TITLE = "4 x 4 Sudoku Game";
 
 // Globals
+// Colors
+const grid_fill_color = LIGHTGRAY;
+const grid_bar_color  = BLACK;
 
+const background_color = DARKGRAY;
+
+
+// Screen geometry
 var screen_width : f32 = undefined;
 var screen_hidth : f32 = undefined;
 
+
+
+// Grid Tile Possiblities
+// Note: F/C means 'fixed/chosen tile'
+
+const Tile = enum(u8) {
+    empty,
+    F1,
+    F2,
+    F3,
+    F4,
+    C1,
+    C2,
+    C3,
+    C4,
+};
+
+const Grid = [4][4] Tile;
 
 pub fn main() anyerror!void {
 
@@ -88,9 +115,44 @@ fn render() void {
 
     rl.ClearBackground(background_color);
 
-    draw_centered_rect(Vec2{0.5 * screen_width, 0.5 * screen_hidth}, 200, 200, WHITE);
+    render_grid();
 
 }
+
+fn render_grid() void {
+    const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
+    // Set sizes of grid elements.
+    const minimum_screen_dim = @min(screen_width, screen_hidth);
+    const square_length = 0.1  * minimum_screen_dim;
+    const bar_thickness = 0.01 * minimum_screen_dim;
+    const total_length = 5 * bar_thickness + 4 * square_length;
+
+
+    // Draw grid background.
+    const background_length = total_length - bar_thickness;
+    draw_centered_rect(pos, background_length, background_length, grid_fill_color);
+    
+    // Draw vertical grid bars.
+    for (0..5) |i| {
+        // Totally outrageous type massaging bc. the compiler is too dumb...
+        var   offset1 : i32 = undefined;
+        offset1 = @intCast(i); // Yes, @intCast(i) - 2 fails...
+        offset1 -= 2;
+        const offset2 : f32 = @floatFromInt(offset1);
+        draw_centered_rect(pos + Vec2{offset2 * (square_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
+    }
+
+    // Draw horizontal grid bars.
+    for (0..5) |i| {
+        // Totally outrageous type massaging bc. the compiler is too dumb...
+        var   offset1 : i32 = undefined;
+        offset1 = @intCast(i); // Yes, @intCast(i) - 2 fails...
+        offset1 -= 2;
+        const offset2 : f32 = @floatFromInt(offset1);
+        draw_centered_rect(pos + Vec2{0, offset2 * (square_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
+    }
+}
+
 
 // Draw a plain (colored) rectangle, where the position determines the center.
 
