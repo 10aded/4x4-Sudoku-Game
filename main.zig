@@ -26,7 +26,9 @@
 
 
 // TODO LIST:
-// *  Main menu (10 hand-crafted puzzles)
+// *  Think about / implement appropriate buttons (not just rects)
+// *  Main menu
+// *  Create a place for possible tiles to be dragged
 // ** Randomized puzzles (of various degrees of difficulty)
 // *  Think about playing game with the keyboard only
 // *  Dragging tiles functionality
@@ -61,6 +63,8 @@ const WINDOW_TITLE = "4x4 Sudoku Game";
 // Colors
 const grid_fill_color = LIGHTGRAY;
 const grid_bar_color  = BLACK;
+
+const tile_option_background = LIGHTGRAY;
 
 const background_color = DARKGRAY;
 
@@ -165,7 +169,7 @@ fn render() void {
             render_menu();  
         },
         .puzzles_handcrafted => {
-            render_grid(grid1);
+            render_puzzle(grid1);
         },
         .puzzles_randomized => {
             unreachable;
@@ -173,15 +177,18 @@ fn render() void {
     }
 }
 
+
+
 // TODO:
 // Create an actual main menu.
+
 fn render_menu() void {
     const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
     draw_centered_rect(pos, 100, 100, DEBUG);
 }
 
-fn render_grid(grid : Grid) void {
-    const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
+fn render_puzzle(grid : Grid) void {
+    const gridpos = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
     // Set sizes of grid elements.
     const minimum_screen_dim = @min(screen_width, screen_hidth);
     const square_length = 0.1  * minimum_screen_dim;
@@ -191,9 +198,7 @@ fn render_grid(grid : Grid) void {
 
     // Draw grid background.
     const background_length = total_length - bar_thickness;
-    draw_centered_rect(pos, background_length, background_length, grid_fill_color);
-    
-
+    draw_centered_rect(gridpos, background_length, background_length, grid_fill_color);
 
     // Draw the (non-empty) tiles in the grid.
     // @temp (!!!)
@@ -202,7 +207,7 @@ fn render_grid(grid : Grid) void {
     // 3 |-> blue
     // 4 |-> yellow
 
-    const tl_square_pos = pos - Vec2{1.5 * ( square_length + bar_thickness), 1.5 * ( square_length + bar_thickness)};
+    const tl_square_pos = gridpos - Vec2{1.5 * ( square_length + bar_thickness), 1.5 * ( square_length + bar_thickness)};
     
     for (grid, 0..) |tile, i| {
         const xi = @as(f32, @floatFromInt(i % 4));
@@ -222,9 +227,33 @@ fn render_grid(grid : Grid) void {
         // Draw vertical grid bars.
     for (0..5) |i| {
         const offset = @as(f32, @floatFromInt(i)) - 2;
-        draw_centered_rect(pos + Vec2{offset * (square_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
-        draw_centered_rect(pos + Vec2{0, offset * (square_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
+        draw_centered_rect(gridpos + Vec2{offset * (square_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
+        draw_centered_rect(gridpos + Vec2{0, offset * (square_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
     }
+
+    // Draw tile options.
+    const background_rect_pos = Vec2{0.5 * screen_width, 0.75 * screen_hidth};
+    const tile_option_spacing = 0.015 * minimum_screen_dim;
+    const background_rect_width  = 4 * square_length + 3 * bar_thickness + 2 * tile_option_spacing;
+    const background_rect_height = 1 * square_length +                     2 * tile_option_spacing;
+    draw_centered_rect(background_rect_pos, background_rect_width, background_rect_height, tile_option_background);
+
+    const tile_border_thickness = 0.005 * minimum_screen_dim;
+    const left_tile_option_pos  = background_rect_pos - Vec2{1.5 * (square_length + bar_thickness), 0};
+    
+    for (0..4) |i| {
+        // TODO: Write a proc which draws an arbitrary tile at an
+        // arbitrary position, use this and rewrite the grid drawing code
+        // to use it.
+        const offset = @as(f32, @floatFromInt(i));
+
+        const tile_pos = left_tile_option_pos + Vec2{offset * (square_length + bar_thickness), 0};
+        // @temp!
+        const tile_border_length = square_length + tile_border_thickness;
+        draw_centered_rect(tile_pos, tile_border_length, tile_border_length, BLACK);
+        draw_centered_rect(tile_pos, square_length, square_length, DEBUG);
+    }
+
 }
 
 
