@@ -36,6 +36,13 @@ const DARKGRAY  = rlc( 40,  40,  40);
 const LIGHTGRAY = rlc(200, 200, 200);
 const WHITE     = rlc(255, 255, 255);
 
+const RED       = rlc(255, 0,   0);
+const GREEN     = rlc(0,   255, 0);
+const BLUE      = rlc(0,   0,   255);
+const YELLOW    = rlc(255, 255, 0);
+const MAGENTA   = rlc(255, 0,   255);
+
+const DEBUG  = MAGENTA;
 
 
 const initial_screen_width = 1902;
@@ -57,21 +64,21 @@ var screen_hidth : f32 = undefined;
 
 
 // Grid Tile Possiblities
-// Note: F/C means 'fixed/chosen tile'
+// Note: 0 denotes an empty tile
+// Positive number represents a fixed tile
+// Negative number represents a selected tile.
 
-const Tile = enum(u8) {
-    empty,
-    F1,
-    F2,
-    F3,
-    F4,
-    C1,
-    C2,
-    C3,
-    C4,
-};
+const Tile = i8;
 
-const Grid = [4][4] Tile;
+const Grid = [16] Tile;
+
+const grid1 = Grid{1,2,3,4,
+                   4,3,2,1,
+                   2,1,4,3,
+                   3,4,1,2};
+
+// TODO:
+// Write procedure to validate whether or not a given grid is a valid solution.
 
 pub fn main() anyerror!void {
 
@@ -115,11 +122,11 @@ fn render() void {
 
     rl.ClearBackground(background_color);
 
-    render_grid();
+    render_grid(grid1);
 
 }
 
-fn render_grid() void {
+fn render_grid(grid : Grid) void {
     const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
     // Set sizes of grid elements.
     const minimum_screen_dim = @min(screen_width, screen_hidth);
@@ -132,24 +139,37 @@ fn render_grid() void {
     const background_length = total_length - bar_thickness;
     draw_centered_rect(pos, background_length, background_length, grid_fill_color);
     
-    // Draw vertical grid bars.
-    for (0..5) |i| {
-        // Totally outrageous type massaging bc. the compiler is too dumb...
-        var   offset1 : i32 = undefined;
-        offset1 = @intCast(i); // Yes, @intCast(i) - 2 fails...
-        offset1 -= 2;
-        const offset2 : f32 = @floatFromInt(offset1);
-        draw_centered_rect(pos + Vec2{offset2 * (square_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
+
+
+    // Draw the (non-empty) tiles in the grid.
+    // @temp (!!!)
+    // 1 |-> red
+    // 2 |-> green
+    // 3 |-> blue
+    // 4 |-> yellow
+
+    const tl_square_pos = pos - Vec2{1.5 * ( square_length + bar_thickness), 1.5 * ( square_length + bar_thickness)};
+    
+    for (grid, 0..) |tile, i| {
+        const xi = @as(f32, @floatFromInt(i % 4));
+        const yi = @as(f32, @floatFromInt(i / 4));
+        const color = switch(tile) {
+            1 => RED,
+            2 => GREEN,
+            3 => BLUE,
+            4 => YELLOW,
+            else => DEBUG,
+        };
+        const rect_pos = tl_square_pos + Vec2{xi * (square_length + bar_thickness), yi * (square_length + bar_thickness)};
+        const tile_len = square_length + 0.5 * bar_thickness;
+        draw_centered_rect(rect_pos, tile_len, tile_len, color);
     }
 
-    // Draw horizontal grid bars.
+        // Draw vertical grid bars.
     for (0..5) |i| {
-        // Totally outrageous type massaging bc. the compiler is too dumb...
-        var   offset1 : i32 = undefined;
-        offset1 = @intCast(i); // Yes, @intCast(i) - 2 fails...
-        offset1 -= 2;
-        const offset2 : f32 = @floatFromInt(offset1);
-        draw_centered_rect(pos + Vec2{0, offset2 * (square_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
+        const offset = @as(f32, @floatFromInt(i)) - 2;
+        draw_centered_rect(pos + Vec2{offset * (square_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
+        draw_centered_rect(pos + Vec2{0, offset * (square_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
     }
 }
 
