@@ -11,7 +11,7 @@
 //
 // The entire source code of this project is available on GitHub at:
 //
-//   https://github.com/10aded/???
+//   https://github.com/10aded/4x4-Sudoku-Game
 //
 // and was developed (almost) entirely on the Twitch channel 10aded. Copies of the
 // stream are available on YouTube at the @10aded channel.
@@ -23,6 +23,14 @@
 //    https://github.com/raysan5a
 //
 // See the pages above for full license details.
+
+
+// TODO LIST:
+// *  Main menu (10 hand-crafted puzzles)
+// ** Randomized puzzles (of various degrees of difficulty)
+// *  Think about playing game with the keyboard only
+// *  Dragging tiles functionality
+// *  Comptime ( or even runtime) parsing of puzzle list
 
 const std = @import("std");
 const rl  = @cImport(@cInclude("raylib.h"));
@@ -47,7 +55,7 @@ const DEBUG  = MAGENTA;
 
 const initial_screen_width = 1902;
 const initial_screen_hidth = 1080;
-const WINDOW_TITLE = "4 x 4 Sudoku Game";
+const WINDOW_TITLE = "4x4 Sudoku Game";
 
 // Globals
 // Colors
@@ -56,12 +64,17 @@ const grid_bar_color  = BLACK;
 
 const background_color = DARKGRAY;
 
+// Game
+var gamemode : GameMode = undefined;
+
+// Mouse
+var mouse_down            : bool = undefined;
+var mouse_down_last_frame : bool = false;
+var mouse_pos             : Vec2 = undefined;
 
 // Screen geometry
 var screen_width : f32 = undefined;
 var screen_hidth : f32 = undefined;
-
-
 
 // Grid Tile Possiblities
 // Note: 0 denotes an empty tile
@@ -76,6 +89,12 @@ const grid1 = Grid{1,2,3,4,
                    4,3,2,1,
                    2,1,4,3,
                    3,4,1,2};
+
+const GameMode =  enum(u8) {
+    main_menu,
+    puzzles_handcrafted,
+    puzzles_randomized,
+};
 
 // TODO:
 // Write procedure to validate whether or not a given grid is a valid solution.
@@ -101,6 +120,8 @@ pub fn main() anyerror!void {
     
 //    const random = prng.random();
 
+    gamemode = GameMode.main_menu;
+    
     // +----------------+
     // | Main game loop |
     // +----------------+
@@ -109,9 +130,26 @@ pub fn main() anyerror!void {
         screen_width = @floatFromInt(rl.GetScreenWidth());
         screen_hidth = @floatFromInt(rl.GetScreenHeight());
         
-//        process_input_update_state();
+        process_input_update_state();
 
         render();
+    }
+}
+
+
+fn process_input_update_state() void {
+    // Mouse input processing.
+    const rl_mouse_pos = rl.GetMousePosition();
+    mouse_pos = Vec2 { rl_mouse_pos.x, rl_mouse_pos.y};
+
+    // Detect button clicks.
+    mouse_down = rl.IsMouseButtonDown(rl.MOUSE_BUTTON_LEFT);
+    defer mouse_down_last_frame = mouse_down;
+
+    // @temp
+    // Change from the main menu to the puzzles when the left mouse is clicked.
+    if (mouse_down and ! mouse_down_last_frame) {
+        gamemode = GameMode.puzzles_handcrafted;
     }
 }
 
@@ -122,8 +160,24 @@ fn render() void {
 
     rl.ClearBackground(background_color);
 
-    render_grid(grid1);
+    switch(gamemode) {
+        .main_menu => {
+            render_menu();  
+        },
+        .puzzles_handcrafted => {
+            render_grid(grid1);
+        },
+        .puzzles_randomized => {
+            unreachable;
+        },
+    }
+}
 
+// TODO:
+// Create an actual main menu.
+fn render_menu() void {
+    const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
+    draw_centered_rect(pos, 100, 100, DEBUG);
 }
 
 fn render_grid(grid : Grid) void {

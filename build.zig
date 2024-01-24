@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) void {
 	const optimize = b.standardOptimizeOption(.{});
 
 	const exe = b.addExecutable(.{
-		.name = "4_by_4_sudoku",
+		.name = "4x4-Sudoku",
 		.root_source_file = .{ .path = "main.zig" },
 		.target = target,
 		.optimize = optimize,
