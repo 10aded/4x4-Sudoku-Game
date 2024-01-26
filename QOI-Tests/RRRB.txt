@@ -1,0 +1,29 @@
+Start: {0, 0, 0, 255}
+
+5a --> 0101 1010 | QOI_OP_DIFF (dr, dg, db = 1, 2, 2 
+
+(Possible dr values: array(-2, -1, 0, 1)....    array[1] = 1 ; array[2] = 0
+
+{255, 0, 0, 255} (RED PIXEL)
+
+new pixel! So hash...  index_pos = (255 * 3 + 0 * 5 + 0 * 7 + 255 * 11) % 64
+                                 = 50
+
+
+c1 --> 1100 0001 | QOI_OP_RUN  ; run = 1, storted with bias of 1, so run += 1 gives 2.
+
+{255, 0, 0, 255} (RED PIXEL)
+{255, 0, 0, 255} (RED PIXEL)
+
+79 --> 0111 1001 | QOI_OP_DIFF (dr, dg, db = 3, 2, 1
+
+                                                    array[3] = 1 ; array[2] = 0 ; array[1] = -1
+
+{0,   0, 255, 255} (BLUE PIXEL)
+
+new pixel! index_pos = ( 0 + 0 + 7 * 255 + 11 * 255) % 64
+                     = 46
+
+00 --> 0000 0000 | QOI_OP_INDEX (index = 0)
+
+
