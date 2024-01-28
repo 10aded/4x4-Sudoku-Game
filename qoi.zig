@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const test_image = @embedFile("QOI-Tests/RRRBXRBBX.qoi");
+const test_image = @embedFile("QOI-Tests/RRRB.qoi");
 
 const dprint  = std.debug.print;
 const dassert = std.debug.assert;
@@ -33,20 +33,60 @@ pub fn comptime_header_parser( embedded_qoi_file : [] const u8) Qoi_Header {
     return qoi_header;
 }
 
+// TODO: Define these in a more general way.
 const test_image_header = comptime_header_parser(test_image);
+const test_image_width  = test_image_header.image_width;
+const test_image_height = test_image_header.image_height
+;
+var test_image_pixels : [test_image_header.image_height][test_image_header.image_width] Pixel = undefined;
 
-var test_image_pixels = [test_image_header.image_height][test_image_header.image_width] Pixel;
+// In the enum below, the OP XYZ refers to QOI_OP_XYZ in the specification.
+const QOI_OPS = enum(u8) {
+    RGB,
+    RGBA,
+    INDEX,
+    DIFF,
+    LUMA,
+    RUN,
+};
 
-// pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, iwidth : u32, iheight : u32, pixel_array : *[iheight][iwidth] Pixel ) {
-//     // Per the specification,
-//     // "The decoder and encoder start with {r: 0, g: 0, b: 0, a: 255} as the
-//     //previous pixel value."
-//     current_pixel          = Pixel{0,0,0,0};
-//     previously_seen_pixels = [64] Pixel; // @question: Do we need to zero-init this?
-//     previously_seen_pixels[0] = Pixel{0,0,0,0};
+pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime iwidth : u32, comptime iheight : u32, pixel_array : *[iheight][iwidth] Pixel ) void {
+    // Per the specification,
+    // "The decoder and encoder start with {r: 0, g: 0, b: 0, a: 255} as the
+    //previous pixel value."
+
+    //    var current_pixel = Pixel{0,0,0,0};
     
+    // @question: Does Zig zero-init arrays by default?
+    var previously_seen_pixels : [64] Pixel = undefined;
+    previously_seen_pixels[0] = Pixel{0,0,0,0};
+
+    var current_byte_index  : usize = 14;
+    var current_byte : u8   = undefined;
+    var current_pixel_index : usize = 0;
+
+    var current_qoi_op : QOI_OPS = undefined;
     
-// }
+    while( current_pixel_index < iwidth * iheight) {
+        current_byte = embedded_qoi_file[current_byte_index];
+        const bits_67     : u2 = @truncate(current_byte >> 6);
+        const bits_012345 : u6 = @truncate(current_byte & 0b00111111);
+        current_qoi_op = switch (bits_67) {
+            0b00 => .INDEX,
+            0b01 => .DIFF,
+            0b10 => .LUMA,
+            0b11 => switch(bits_012345) {
+                0b111110 => .RGB,
+                0b111111 => .RGBA,
+                else     => .RUN,
+            },
+        };
+        
+        break; // @temp!
+    }
+    dprint("Current OP: {any}\n", .{current_qoi_op});
+    pixel_array[0][0] = Pixel{1,1,1,1};
+}
 
 fn pixel_hash(pixel : Pixel) u8 {
     const r = pixel[0];
@@ -60,11 +100,19 @@ fn pixel_hash(pixel : Pixel) u8 {
 
 pub fn main() void {
     // TODO: Turn the following into a Zig test
+    // Suggestion (tw0st3p:
+    // test "test name" { std.testing.expectEqual(@as(u8, 69, foo())) };
     //    const test_pixel_hash = pixel_hash(Pixel{1,1,1,1});
     // Expect: 22
 //    const test_pixel_hash = pixel_hash(Pixel{100,0,0,0});
     // Expect: 44
 //    dprint("PH: {d}\n", .{test_pixel_hash}); // @debug
+
+
+
+    qoi_to_pixels(test_image, test_image_width, test_image_height, &test_image_pixels);
+
     dprint("Header: {any}\n", .{test_image_header}); // @debug
+
 }
 
