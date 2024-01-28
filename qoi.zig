@@ -14,7 +14,10 @@ const Qoi_Header = struct {
     channel      : u8,
     colorspace   : u8,
 };
-    
+
+// Note: In Zig DEBUG builds, static memory that are set to undefined are 
+// filled with 0xaa s.
+
 pub fn comptime_header_parser( embedded_qoi_file : [] const u8) Qoi_Header {
         // Parse the image header into the qoi_header struct.
     const raw_image = embedded_qoi_file;
@@ -172,13 +175,13 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
         // We don't need to hash when the OP is one of:
         // .RUN
         // .INDEX
-        // .LUMA (since the op is 2 bytes, but a INDEX op is just 1 byte)
         
         // We need to hash a pixel (and store in the previously_seen_pixels)
         // when the OP is one of:
         // .RGB
         // .RGBA
         // .DIFF
+        // .LUMA (since the op is 2 bytes, but a INDEX op is just 1 byte)
 
         // Note: For .DIFF, the specification doesn't say
         // when encoding whether or not .INDEX should have a higher priority
@@ -189,28 +192,30 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
         // been seen before, except in the case of two consecutive INDEXs
         // (in which case a run would be issued instead).
 
-        // TODO...
-        // Complete this.
-        // pixel_hash : u8 = undefined;
-        // switch(current_qoi_op) {
-        //     .RUN, .INDEX, .LUMA => {},
-        //     .RGB, .RGBA, .DIFF  => {},
-        // }
-
+        var hash : u8 = undefined;
+        switch(current_qoi_op) {
+            .RUN, .INDEX  => {},
+            .RGB, .RGBA, .DIFF, .LUMA  => {
+                hash = pixel_hash(current_pixel);
+                previously_seen_pixels[hash] = current_pixel;
+            },
+        }
+        
         // @debug
         dprint("{any}\n", .{current_pixel});
     }
     dprint("Current OP: {any}\n", .{current_qoi_op});
 }
 
-fn pixel_hash(pixel : Pixel) u8 {
+fn pixel_hash(pixel : Pixel) u6 {
     const r = pixel[0];
     const g = pixel[1];
     const b = pixel[2];
     const a = pixel[3];
     // Using only * will result in a runtime panic: integer overflow
     // To avoid this, we use *% instead. (@thanks tw0st3p!)
-    return (r *% 3 + g *% 5 + b *% 7 + a *% 11) % 64;
+    const hash : u6 = @truncate(r *% 3 +% g *% 5 +% b *% 7 +% a *% 11);
+    return hash;
 }
 
 pub fn main() void {
