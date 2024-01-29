@@ -227,6 +227,10 @@ pub fn main() !void {
     print_pixels(test_image_pixels);
 }
 
+// This can be run on its own with the command:
+//
+//     zig test qoi.zig --test-filter "comptime parse"
+//
 test "comptime parse" {
    const pixels = comptime blk: {
         var fbs = std.io.fixedBufferStream(test_image);
