@@ -2,7 +2,14 @@ const std = @import("std");
 
 const test_image = @embedFile("QOI-Tests/3x4.qoi");
 
-const dprint  = std.debug.print;
+fn dprint(comptime fmt: []const u8, args: anytype) void {
+    if(@inComptime()) {
+        // uncomment to debug at comptime
+        // @compileLog(std.fmt.comptimePrint(fmt, args));
+    } else {
+        std.debug.print(fmt, args);
+    }
+}
 const dassert = std.debug.assert;
 
 const Pixel = [4] u8;
@@ -18,15 +25,15 @@ const Qoi_Header = struct {
 // Note: In Zig DEBUG builds, static memory that are set to undefined are 
 // filled with 0xaa s.
 
-pub fn comptime_header_parser( embedded_qoi_file : [] const u8) Qoi_Header {
+pub fn parse_header( reader: anytype ) !Qoi_Header {
         // Parse the image header into the qoi_header struct.
-    const raw_image = embedded_qoi_file;
+    
     const qoi_header  = Qoi_Header{
-        .magic_bytes  = [4]u8{raw_image[0], raw_image[1], raw_image[2], raw_image[3]},
-        .image_width  = std.mem.readIntSlice(u32, raw_image[4..8],  .Big), // (Thanks tw0st3p!)
-        .image_height = std.mem.readIntSlice(u32, raw_image[8..12], .Big),
-        .channel      = raw_image[12],
-        .colorspace   = raw_image[13],
+        .magic_bytes  = try reader.readBytesNoEof(4),
+        .image_width  = try reader.readInt(u32, .Big), // (Thanks tw0st3p!)
+        .image_height = try reader.readInt(u32, .Big),
+        .channel      = try reader.readByte(),
+        .colorspace   = try reader.readByte(),
     };
 
     // Check the magic bytes are correct for a .qoi file.
@@ -36,12 +43,6 @@ pub fn comptime_header_parser( embedded_qoi_file : [] const u8) Qoi_Header {
     return qoi_header;
 }
 
-// TODO: Define these in a more general way.
-const test_image_header = comptime_header_parser(test_image);
-const test_image_width  = test_image_header.image_width;
-const test_image_height = test_image_header.image_height
-;
-var test_image_pixels : [test_image_header.image_width * test_image_header.image_height] Pixel = undefined;
 
 // In the enum below, the OP XYZ refers to QOI_OP_XYZ in the specification.
 const QOI_OPS = enum(u8) {
@@ -55,7 +56,7 @@ const QOI_OPS = enum(u8) {
 
 // @decision: Should this procedure take in a pixel array that is a matrix
 // or a simple array... I feel like it should actually just be an array.
-pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels : u64, pixel_array : *[number_of_pixels] Pixel ) void {
+pub fn qoi_to_pixels( reader : anytype, header : Qoi_Header, writer : anytype ) !void {
     // Per the specification,
     // "The decoder and encoder start with {r: 0, g: 0, b: 0, a: 255} as the
     //previous pixel value."
@@ -65,17 +66,12 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
     var previously_seen_pixels : [64] Pixel = undefined;
     previously_seen_pixels[0] = Pixel{0,0,0,0};
 
-    var current_byte_index  : usize = 14;
-    var current_byte : u8   = undefined;
     var current_pixel_index : usize = 0;
-
-    var current_qoi_op : QOI_OPS = undefined;
-    
-    while( current_pixel_index < number_of_pixels) {
-        current_byte = embedded_qoi_file[current_byte_index];
+    while( current_pixel_index < header.image_width * header.image_height ) : ( current_pixel_index += 1 ) {
+        const current_byte = try reader.readByte();
         const bits_67     : u2 = @truncate(current_byte >> 6);
         const bits_012345 : u6 = @truncate(current_byte & 0b00111111);
-        current_qoi_op = switch (bits_67) {
+        const current_qoi_op: QOI_OPS = switch (bits_67) {
             0b00 => .INDEX,
             0b01 => .DIFF,
             0b10 => .LUMA,
@@ -85,38 +81,25 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
                 else     => .RUN,
             },
         };
+        dprint("Current OP: {any}\n", .{current_qoi_op});
 
         // Calculate the next pixel(s) values, and the index advances.
-        var pixel_index_adv : usize = undefined;
-        var byte_index_adv  : usize = undefined;
+        
         switch (current_qoi_op) {
             .RGB => {
                 // Read a RGB value from the file.
-                const red_byte   : u8 = embedded_qoi_file[current_byte_index + 1];
-                const green_byte : u8 = embedded_qoi_file[current_byte_index + 2];
-                const blue_byte  : u8 = embedded_qoi_file[current_byte_index + 3];
-                current_pixel = Pixel{red_byte, green_byte, blue_byte, current_pixel[3]};
-                pixel_index_adv = 1;
-                byte_index_adv  = 4;
+                const rgb = try reader.readBytesNoEof(3);
+                current_pixel = rgb ++ [1]u8{current_pixel[3]};
             },
             .RGBA => {
                 // Read a RGBA value from the file.
-                const red_byte   : u8 = embedded_qoi_file[current_byte_index + 1];
-                const green_byte : u8 = embedded_qoi_file[current_byte_index + 2];
-                const blue_byte  : u8 = embedded_qoi_file[current_byte_index + 3];
-                const alpha_byte : u8 = embedded_qoi_file[current_byte_index + 4];
-                current_pixel = Pixel{red_byte, green_byte, blue_byte, alpha_byte}
-                ;
-                pixel_index_adv = 1;
-                byte_index_adv  = 5;
+                current_pixel = try reader.readBytesNoEof(4);
             },
             .INDEX => {
                 // Lookup a pixel in previously_seen_pixels, using first six bits
                 // of the current byte.
                 const index = @as(usize, bits_012345);
                 current_pixel = previously_seen_pixels[index];
-                pixel_index_adv = 1;
-                byte_index_adv  = 1;
             },
             .DIFF => {
                 const dr : u2 = @truncate(bits_012345 >> 4);
@@ -128,13 +111,11 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
                                       current_pixel[1] +% dg -% 2,
                                       current_pixel[2] +% db -% 2,
                                       current_pixel[3]};
-                pixel_index_adv = 1;
-                byte_index_adv  = 1;
             },
             .LUMA => {
                 // Get bits.
                 var diff_green : u8 = @as(u8, bits_012345);
-                const drdb_byte = embedded_qoi_file[current_byte_index + 1];
+                const drdb_byte = try reader.readByte();
                 var drdg : u8 = drdb_byte >> 4; // This should be filled with 0s.
                 var dbdg : u8 = drdb_byte & 0x0F;
                 // Apply offsets.
@@ -148,8 +129,6 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
                                       current_pixel[1] +% dg,
                                       current_pixel[2] +% db,
                                       current_pixel[3]};
-                pixel_index_adv = 1;
-                byte_index_adv  = 2;
             },
             .RUN => {
                 // Unlike the other OPS, which only write a single
@@ -160,17 +139,16 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
 
                 // Note: Setting this after the loop would mean that
                 // the advance is 0, which we don't want. (thanks tw0st3p)!
-                pixel_index_adv = run; 
-                byte_index_adv  = 1;                
-
+                
                 while (run != 0) : (run -= 1) {
-                    pixel_array[run - 1] = current_pixel;
+                    _ = try writer.write(&current_pixel);
+                    current_pixel_index += 1;
                 }
+                continue;
             },
         }
-        pixel_array[current_pixel_index] = current_pixel;
-        current_pixel_index += pixel_index_adv;
-        current_byte_index  += byte_index_adv;
+        _ = try writer.write(&current_pixel);
+        
         
         // We don't need to hash when the OP is one of:
         // .RUN
@@ -204,7 +182,6 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
         // @debug
         dprint("{any}\n", .{current_pixel});
     }
-    dprint("Current OP: {any}\n", .{current_qoi_op});
 }
 
 fn pixel_hash(pixel : Pixel) u6 {
@@ -218,7 +195,14 @@ fn pixel_hash(pixel : Pixel) u6 {
     return hash;
 }
 
-pub fn main() void {
+fn print_pixels(pixels: []const u8) void {
+    var pxi : usize = 0;
+    while(pxi < pixels.len) : (pxi += 4) {
+        dprint("#{x:0>2}{x:0>2}{x:0>2}{x:0>2}\n", .{pixels[pxi], pixels[pxi + 1], pixels[pxi + 2], pixels[pxi + 3]});
+    }
+}
+
+pub fn main() !void {
     // TODO: Turn the following into a Zig test
     // Suggestion (tw0st3p:
     // test "test name" { std.testing.expectEqual(@as(u8, 69, foo())) };
@@ -227,12 +211,32 @@ pub fn main() void {
 //    const test_pixel_hash = pixel_hash(Pixel{100,0,0,0});
     // Expect: 44
 //    dprint("PH: {d}\n", .{test_pixel_hash}); // @debug
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
 
+    var fbs = std.io.fixedBufferStream(test_image);
+    const test_image_header = try parse_header(fbs.reader());
+    var test_image_pixels = try allocator.alloc(u8, test_image_header.image_width * test_image_header.image_height * 4);
+    defer allocator.free(test_image_pixels);
 
-
-    qoi_to_pixels(test_image, @as(u64, test_image_width) * @as(u64, test_image_height), &test_image_pixels);
+    var fbs2 = std.io.fixedBufferStream(test_image_pixels);
+    try qoi_to_pixels(fbs.reader(), test_image_header, fbs2.writer());
 
     dprint("Header: {any}\n", .{test_image_header}); // @debug
-
+    print_pixels(test_image_pixels);
 }
 
+test "comptime parse" {
+   const pixels = comptime blk: {
+        var fbs = std.io.fixedBufferStream(test_image);
+        const test_image_header = try parse_header(fbs.reader());
+        var test_image_pixels: [test_image_header.image_width * test_image_header.image_height * 4] u8 = undefined;
+
+        var fbs2 = std.io.fixedBufferStream(&test_image_pixels);
+        try qoi_to_pixels(fbs.reader(), test_image_header, fbs2.writer());
+        break :blk test_image_pixels;
+    };
+
+    print_pixels(&pixels);
+}
