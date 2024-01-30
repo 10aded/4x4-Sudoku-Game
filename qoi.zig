@@ -2,6 +2,7 @@ const std = @import("std");
 
 //const test_image = @embedFile("QOI-Tests/3x4.qoi");
 const RRRB_image = @embedFile("QOI-Tests/RRRB.qoi");
+const RRRBXRBBX_image = @embedFile("QOI-Tests/RRRBXRBBX.qoi");
 
 const dprint  = std.debug.print;
 const dassert = std.debug.assert;
@@ -253,3 +254,23 @@ test "RRRB decoder" {
     try std.testing.expectEqual(expected_pixels, RRRB_pixels);
     //    dprint("Pixels: {any}\n", .{RRRB_pixels}); // @debug
 }
+
+test "RRRBXRBBX decoder" {
+    const RRRBXRBBX_header = comptime comptime_header_parser(RRRBXRBBX_image);
+    const width  = @as(u64, RRRBXRBBX_header.image_width);
+    const height = @as(u64, RRRBXRBBX_header.image_height);
+    var RRRBXRBBX_pixels : [width * height] Pixel = undefined;
+    qoi_to_pixels(RRRBXRBBX_image, width * height, &RRRBXRBBX_pixels);
+
+    const expected_pixels = [9] Pixel {.{255, 0,   0,   255},
+                                       .{255, 0,   0,   255},
+                                       .{255, 0,   0,   255},
+                                       .{0,   0,   255, 255},
+                                       .{136, 136, 136, 255},
+                                       .{255, 0,   0,   255},                                                               .{0,   0,   255, 255},
+                                       .{0,   0,   255, 255},
+                                       .{136, 136, 136, 255}};
+
+    try std.testing.expectEqual(expected_pixels, RRRBXRBBX_pixels);
+}
+
