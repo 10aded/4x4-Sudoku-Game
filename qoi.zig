@@ -1,6 +1,13 @@
+// Suggestion: Use the image viewer at:
+// https://github.com/marler8997/image-viewer
+
+// Suggestion: Name the .exe locally by "zig-image-viewer-f189f2.exe"
+
 const std = @import("std");
 
 const test_image = @embedFile("QOI-Tests/3x4.qoi");
+
+const RRRB_image = @embedFile("QOI-Tests/RRRB.qoi");
 
 fn dprint(comptime fmt: []const u8, args: anytype) void {
     if(@inComptime()) {
@@ -240,6 +247,19 @@ test "comptime parse" {
         var fbs2 = std.io.fixedBufferStream(&test_image_pixels);
         try qoi_to_pixels(fbs.reader(), test_image_header, fbs2.writer());
         break :blk test_image_pixels;
+    };
+
+    print_pixels(&pixels);
+}
+
+test "RRRB parse" {
+    const pixels = comptime blk: {
+        var fbs1 = std.io.fixedBufferStream(RRRB_image);
+        const RRRB_image_header = try parse_header(fbs1.reader());
+        var RRRB_image_pixels: [RRRB_image_header.image_width * RRRB_image_header.image_height * 4] u8 = undefined;
+        var fbs2 = std.io.fixedBufferStream(&RRRB_image_pixels);
+        try qoi_to_pixels(fbs1.reader(), RRRB_image_header, fbs2.writer());
+        break :blk RRRB_image_pixels;
     };
 
     print_pixels(&pixels);
