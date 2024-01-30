@@ -1,5 +1,13 @@
 const std = @import("std");
 
+// The (Zig-made!) image viewer at:
+// 
+// https://github.com/marler8997/image-viewer
+//
+// is significantly better (for real) than the "Photos" app since
+// it can actually render .qoi files AND allows arbitrary zoom.
+
+
 //const test_image = @embedFile("QOI-Tests/3x4.qoi");
 const RRRB_image = @embedFile("QOI-Tests/RRRB.qoi");
 const RRRBXRBBX_image = @embedFile("QOI-Tests/RRRBXRBBX.qoi");
