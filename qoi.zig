@@ -1,6 +1,7 @@
 const std = @import("std");
 
-const test_image = @embedFile("QOI-Tests/3x4.qoi");
+//const test_image = @embedFile("QOI-Tests/3x4.qoi");
+const RRRB_image = @embedFile("QOI-Tests/RRRB.qoi");
 
 const dprint  = std.debug.print;
 const dassert = std.debug.assert;
@@ -36,12 +37,11 @@ pub fn comptime_header_parser( embedded_qoi_file : [] const u8) Qoi_Header {
     return qoi_header;
 }
 
-// TODO: Define these in a more general way.
-const test_image_header = comptime_header_parser(test_image);
-const test_image_width  = test_image_header.image_width;
-const test_image_height = test_image_header.image_height
-;
-var test_image_pixels : [test_image_header.image_width * test_image_header.image_height] Pixel = undefined;
+// const test_image_header = comptime_header_parser(test_image);
+// const test_image_width  = test_image_header.image_width;
+// const test_image_height = test_image_header.image_height;
+
+//var test_image_pixels : [test_image_header.image_width * test_image_header.image_height] Pixel = undefined;
 
 // In the enum below, the OP XYZ refers to QOI_OP_XYZ in the specification.
 const QOI_OPS = enum(u8) {
@@ -55,6 +55,8 @@ const QOI_OPS = enum(u8) {
 
 // @decision: Should this procedure take in a pixel array that is a matrix
 // or a simple array... I feel like it should actually just be an array.
+// TODO: Change the args here so that we don't use u64!
+// @Maybe: Create a different 'layer' / calls to the header parser ???
 pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels : u64, pixel_array : *[number_of_pixels] Pixel ) void {
     // Per the specification,
     // "The decoder and encoder start with {r: 0, g: 0, b: 0, a: 255} as the
@@ -164,7 +166,7 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
                 byte_index_adv  = 1;                
 
                 while (run != 0) : (run -= 1) {
-                    pixel_array[run - 1] = current_pixel;
+                    pixel_array[current_pixel_index + run - 1] = current_pixel;
                 }
             },
         }
@@ -201,10 +203,10 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
             },
         }
         
-        // @debug
-        dprint("{any}\n", .{current_pixel});
+
+//        dprint("{any}\n", .{current_pixel});        // @debug
     }
-    dprint("Current OP: {any}\n", .{current_qoi_op});
+//    dprint("Current OP: {any}\n", .{current_qoi_op}); // @debug
 }
 
 fn pixel_hash(pixel : Pixel) u6 {
@@ -230,9 +232,24 @@ pub fn main() void {
 
 
 
-    qoi_to_pixels(test_image, @as(u64, test_image_width) * @as(u64, test_image_height), &test_image_pixels);
+    // qoi_to_pixels(test_image, @as(u64, test_image_width) * @as(u64, test_image_height), &test_image_pixels);
 
-    dprint("Header: {any}\n", .{test_image_header}); // @debug
-
+    // dprint("Header: {any}\n", .{test_image_header}); // @debug
+    // dprint("Pixels: {any}\n", .{test_image_pixels}); // @debug
 }
 
+test "RRRB decoder" {
+    const RRRB_header = comptime comptime_header_parser(RRRB_image);
+    const width  = @as(u64, RRRB_header.image_width);
+    const height = @as(u64, RRRB_header.image_height);
+    var RRRB_pixels : [width * height] Pixel = undefined;
+    qoi_to_pixels(RRRB_image, width * height, &RRRB_pixels);
+
+    const expected_pixels = [4] Pixel {.{255, 0, 0,   255}, // thanks @johnnymarler!
+                                       .{255, 0, 0,   255},
+                                       .{255, 0, 0,   255},
+                                       .{0,   0, 255, 255}};
+
+    try std.testing.expectEqual(expected_pixels, RRRB_pixels);
+    //    dprint("Pixels: {any}\n", .{RRRB_pixels}); // @debug
+}
