@@ -35,9 +35,27 @@
 // *  Comptime ( or even runtime) parsing of puzzle list
 
 const std = @import("std");
+const qoi = @import("qoi.zig");
 const rl  = @cImport(@cInclude("raylib.h"));
 
 const Vec2   = @Vector(2, f32);
+const Pixel = [4] u8;
+
+
+// Make space to decode the bitmap at comptime.
+const bitmap = @embedFile("QOI-Tests/8514-bitmap.qoi");
+const bitmap_header = qoi.comptime_header_parser(bitmap);
+const bitmap_width  = @as(u64, bitmap_header.image_width);
+const bitmap_height = @as(u64, bitmap_header.image_height);
+
+var bitmap_pixels : [bitmap_width * bitmap_height] Pixel = undefined;
+var bitmap_bools : [bitmap_width * bitmap_height] bool = undefined;
+
+
+// Misc. procedures.
+
+const dprint  = std.debug.print;
+
 
 // Constants
 // UI Colors
@@ -125,6 +143,18 @@ pub fn main() anyerror!void {
 //    const random = prng.random();
 
     gamemode = GameMode.main_menu;
+
+    // @debug
+
+
+    // Load at runtime the bitmap, and convert to an array of bools.
+    qoi.qoi_to_pixels(bitmap, bitmap_width * bitmap_height, &bitmap_pixels);
+
+    for (bitmap_pixels, 0..) |pixel, i| {
+        bitmap_bools[i] = pixel[0] == 255;
+    }
+    
+//    dprint("{any}\n", .{bitmap_bools}); // @debug
     
     // +----------------+
     // | Main game loop |
@@ -254,6 +284,30 @@ fn render_puzzle(grid : Grid) void {
         draw_centered_rect(tile_pos, square_length, square_length, DEBUG);
     }
 
+    // Draw the pixels of the bitmap, by drawing a rectangle for each true value
+    // in the bitmap.
+
+    const bitmap_screen_width  = 0.5 * screen_width;
+    const bitmap_screen_height = bitmap_screen_width * @as(f32, bitmap_height) / @as(f32, bitmap_width);
+
+    const pixel_square_size = 0.01 * screen_width;
+    
+    const tl_pixel_corner = Vec2{0.5 * screen_width - 0.5 * bitmap_screen_width, 0.5 * screen_hidth - 0.5 * bitmap_screen_height};
+    const tl_pixel_center = tl_pixel_corner + Vec2{0.5 * pixel_square_size, 0.5 * pixel_square_size};
+    for (0..bitmap_width) |px| {
+        for (0..bitmap_height) |py| {
+            const pixel_pos = tl_pixel_center + Vec2{@as(f32,@floatFromInt(px)) * pixel_square_size, @as(f32,@floatFromInt(py)) * pixel_square_size};
+            // @prolly should get rid of the if...
+            if (bitmap_bools[py * bitmap_width + px]) {
+                const pixel_interior_thickness = 0.75;
+                draw_centered_rect(pixel_pos, pixel_square_size, pixel_square_size, BLACK);
+                draw_centered_rect(pixel_pos, pixel_interior_thickness * pixel_square_size, pixel_interior_thickness * pixel_square_size, WHITE);
+            }
+        }
+    }
+        
+    
+//    draw_centered_rect(.{0.5 * screen_width, 0.5 * screen_hidth}, bitmap_screen_width, bitmap_screen_height, DEBUG); // @debug
 }
 
 
