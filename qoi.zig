@@ -7,10 +7,11 @@ const std = @import("std");
 // is significantly better (for real) than the "Photos" app since
 // it can actually render .qoi files AND allows arbitrary zoom.
 
+const bitmap1 = @embedFile("QOI-Tests/8514-bitmap.qoi");
 
-//const test_image = @embedFile("QOI-Tests/3x4.qoi");
 const RRRB_image = @embedFile("QOI-Tests/RRRB.qoi");
 const RRRBXRBBX_image = @embedFile("QOI-Tests/RRRBXRBBX.qoi");
+const three_by_four_image = @embedFile("QOI-Tests/3x4.qoi");
 
 const dprint  = std.debug.print;
 const dassert = std.debug.assert;
@@ -230,6 +231,15 @@ fn pixel_hash(pixel : Pixel) u6 {
 }
 
 pub fn main() void {
+
+        const bitmap1_header = comptime comptime_header_parser(bitmap1);
+    const width  = @as(u64, bitmap1_header.image_width);
+    const height = @as(u64, bitmap1_header.image_height);
+    var bitmap1_pixels : [width * height] Pixel = undefined;
+    qoi_to_pixels(bitmap1, width * height, &bitmap1_pixels);
+
+    dprint("{any}\n", .{bitmap1_pixels});
+    
     // TODO: Turn the following into a Zig test
     // Suggestion (tw0st3p:
     // test "test name" { std.testing.expectEqual(@as(u8, 69, foo())) };
@@ -282,3 +292,26 @@ test "RRRBXRBBX decoder" {
     try std.testing.expectEqual(expected_pixels, RRRBXRBBX_pixels);
 }
 
+test "three_by_four decoder" {
+    const three_by_four_header = comptime comptime_header_parser(three_by_four_image);
+    const width  = @as(u64, three_by_four_header.image_width);
+    const height = @as(u64, three_by_four_header.image_height);
+    var three_by_four_pixels : [width * height] Pixel = undefined;
+    qoi_to_pixels(three_by_four_image, width * height, &three_by_four_pixels);
+
+    const expected_pixels = [12] Pixel {.{255, 0,   0,   255}, // First row.
+                                        .{255, 0,   0,   255},
+                                        .{255, 0,   0,   255},
+                                        .{0,   0,   0,   0},
+                                        .{255, 0,   0,   255}, // Second row.
+                                        .{13,  16,  14,  255},
+                                        .{255, 255, 255, 255},
+                                        .{0, 255,   0,   255},
+                                        .{0, 255,   0,   255},  // Third row.
+                                        .{102, 102, 102, 255},
+                                        .{255, 0,   0,   255},
+                                        .{102, 102, 102, 255}};
+ 
+
+    try std.testing.expectEqual(expected_pixels, three_by_four_pixels);
+}
