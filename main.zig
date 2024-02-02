@@ -89,6 +89,10 @@ const background_color = DARKGRAY;
 // Game
 var gamemode : GameMode = undefined;
 
+// Textures.
+
+var testi_texture : rl.Texture2D = undefined;
+
 // Mouse
 var mouse_down            : bool = undefined;
 var mouse_down_last_frame : bool = false;
@@ -153,7 +157,18 @@ pub fn main() anyerror!void {
     for (bitmap_pixels, 0..) |pixel, i| {
         bitmap_bools[i] = pixel[0] == 255;
     }
-    
+
+
+    // Create a rl.Image s from which to generate the textures containing
+    // the bitmap numerals in the game.
+
+//    const n1 : i32 = 100;
+    var testi : rl.Image = rl.GenImageColor(100, 100, DEBUG);
+
+    // TODO... transfer bitmap info onto testi
+
+    testi_texture = rl.LoadTextureFromImage(testi);
+
 //    dprint("{any}\n", .{bitmap_bools}); // @debug
     
     // +----------------+
@@ -215,6 +230,8 @@ fn render() void {
 fn render_menu() void {
     const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
     draw_centered_rect(pos, 100, 100, DEBUG);
+
+    _ = draw_texture(&testi_texture, Vec2{200, 200}, 50);
 }
 
 fn render_puzzle(grid : Grid) void {
@@ -327,4 +344,31 @@ fn rlc(r : u8, g : u8, b : u8) rl.Color {
         .a = 255,
     };
     return rlcolor;
+}
+
+fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) f32 {
+    const twidth  : f32  = @floatFromInt(texturep.*.width);
+    const theight : f32  = @floatFromInt(texturep.*.height);
+    
+    const scaling_ratio  = height / theight;
+    
+    const scaled_h  = height;
+    const scaled_w  = scaled_h * twidth / theight;
+    
+    const dumb_rl_tl_vec2 = rl.Vector2{
+        .x = center_pos[0] - 0.5 * scaled_w,
+        .y = center_pos[1] - 0.5 * scaled_h,
+    };
+
+    // The 3rd arg (0) is for rotation.
+    rl.DrawTextureEx(texturep.*, dumb_rl_tl_vec2, 0, scaling_ratio, WHITE);
+    return scaled_w;
+}
+
+fn vec2_to_rl(vec : Vec2) rl.Vector2 {
+    const dumb_rl_tl_vec2 = rl.Vector2{
+        .x = vec[0],
+        .y = vec[1],
+    };
+    return dumb_rl_tl_vec2;
 }

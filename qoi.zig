@@ -7,7 +7,7 @@ const std = @import("std");
 // is significantly better (for real) than the "Photos" app since
 // it can actually render .qoi files AND allows arbitrary zoom.
 
-const bitmap1 = @embedFile("QOI-Tests/8514-bitmap.qoi");
+
 
 const RRRB_image = @embedFile("QOI-Tests/RRRB.qoi");
 const RRRBXRBBX_image = @embedFile("QOI-Tests/RRRBXRBBX.qoi");
@@ -232,13 +232,7 @@ fn pixel_hash(pixel : Pixel) u6 {
 
 pub fn main() void {
 
-        const bitmap1_header = comptime comptime_header_parser(bitmap1);
-    const width  = @as(u64, bitmap1_header.image_width);
-    const height = @as(u64, bitmap1_header.image_height);
-    var bitmap1_pixels : [width * height] Pixel = undefined;
-    qoi_to_pixels(bitmap1, width * height, &bitmap1_pixels);
 
-    dprint("{any}\n", .{bitmap1_pixels});
     
     // TODO: Turn the following into a Zig test
     // Suggestion (tw0st3p:
