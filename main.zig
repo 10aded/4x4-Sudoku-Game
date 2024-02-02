@@ -56,7 +56,6 @@ var bitmap_bools : [bitmap_width * bitmap_height] bool = undefined;
 
 const dprint  = std.debug.print;
 
-
 // Constants
 // UI Colors
 const BLACK     = rlc(  0,   0,   0);
@@ -163,9 +162,12 @@ pub fn main() anyerror!void {
     // the bitmap numerals in the game.
 
 //    const n1 : i32 = 100;
-    var testi : rl.Image = rl.GenImageColor(100, 100, DEBUG);
+    var testi : rl.Image = rl.GenImageColor(5, 5, DEBUG);
 
-    // TODO... transfer bitmap info onto testi
+
+    rl.ImageDrawRectangle(&testi, 1, 1, 2, 2, YELLOW);
+    
+        // TODO... transfer bitmap info onto testi using ImageDrawRectangle;
 
     testi_texture = rl.LoadTextureFromImage(testi);
 
@@ -231,7 +233,7 @@ fn render_menu() void {
     const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
     draw_centered_rect(pos, 100, 100, DEBUG);
 
-    _ = draw_texture(&testi_texture, Vec2{200, 200}, 50);
+    _ = draw_texture(&testi_texture, Vec2{200, 200}, 1000);
 }
 
 fn render_puzzle(grid : Grid) void {
