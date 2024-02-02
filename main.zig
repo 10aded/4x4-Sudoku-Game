@@ -43,7 +43,7 @@ const Pixel = [4] u8;
 
 
 // Make space to decode the bitmap at comptime.
-const bitmap = @embedFile("QOI-Tests/8514-bitmap.qoi");
+const bitmap = @embedFile("Bitmap-Stuff/8514-bitmap.qoi");
 const bitmap_header = qoi.comptime_header_parser(bitmap);
 const bitmap_width  = @as(u64, bitmap_header.image_width);
 const bitmap_height = @as(u64, bitmap_header.image_height);
