@@ -59,23 +59,20 @@ const dprint  = std.debug.print;
 
 // Constants
 // UI Colors
-const BLACK     = rlc(  0,   0,   0);
-const DARKGRAY  = rlc( 40,  40,  40);
-const LIGHTGRAY = rlc(200, 200, 200);
-const WHITE     = rlc(255, 255, 255);
+const BLACK     = rlc(  0,   0,   0, 255);
+const DARKGRAY  = rlc( 40,  40,  40, 255);
+const LIGHTGRAY = rlc(200, 200, 200, 255);
+const WHITE     = rlc(255, 255, 255, 255);
 
-const RED       = rlc(255, 0,   0);
-const GREEN     = rlc(0,   255, 0);
-const BLUE      = rlc(0,   0,   255);
-const YELLOW    = rlc(255, 255, 0);
-const MAGENTA   = rlc(255, 0,   255);
+const RED       = rlc(255,   0,   0, 255);
+const GREEN     = rlc(  0, 255,   0, 255);
+const BLUE      = rlc(  0,   0, 255, 255);
+const YELLOW    = rlc(255, 255,   0, 255);
+const MAGENTA   = rlc(255,   0, 255, 255);
 
-const TRANSPARENT = rl.Color{
-        .r = 0, .g = 0, .b = 0, .a = 0,
-};
+const TRANSPARENT = rlc(0,0,0,0);
 
 const DEBUG  = MAGENTA;
-
 
 const initial_screen_width = 1902;
 const initial_screen_hidth = 1080;
@@ -158,11 +155,8 @@ pub fn main() anyerror!void {
     // Load at runtime the bitmap, and convert to an array of bools.
     qoi.qoi_to_pixels(bitmap, bitmap_width * bitmap_height, &bitmap_pixels);
 
-    for (bitmap_pixels, 0..) |pixel, i| {
-        bitmap_bools[i] = pixel[0] == 255;
-    }
-
-
+    dprint("{any}\n", .{bitmap_pixels}); // @debug
+    
     // Create a rl.Image s from which to generate the textures containing
     // the bitmap numerals in the game.
 
@@ -173,8 +167,8 @@ pub fn main() anyerror!void {
     var numeral_images : [4] rl.Image = undefined;
 
     for (0..4) |i| {
-        //        numeral_images = rl.GenImageColor(20, 20, TRANSPARENT);
-        numeral_images[i] = rl.GenImageColor(20, 20, DEBUG);
+        numeral_images[i] = rl.GenImageColor(20, 20, TRANSPARENT);
+//        numeral_images[i] = rl.GenImageColor(20, 20, DEBUG); // @debug
     }
 
     // TODO... transfer bitmap info onto testi using ImageDrawRectangle;    
@@ -183,6 +177,24 @@ pub fn main() anyerror!void {
 //    rl.ImageDrawRectangle(&testi, 1, 1, 2, 2, YELLOW);
 
     // Initialize the textures for '1', '2', '3', '4'.
+    // Since the images have a width of 20, but the numerals have a width
+    // of 10, when copying over the pixels from the bitmaps, we want to
+    // do += 5.
+    // In the bitmap, the background pixels are BLACK, the numeral pixels are WHITE,
+    // so below we set:
+    //     the numeral pixels to:    BLACK,
+    //     the background pixels to: TRANSPARENT.
+    
+    for (0..4) |numeral_i| {
+        for (0..20) |yi| {
+            for (0..10) |xi| {
+                const bitmap_pixel_color = bitmap_pixels[yi * bitmap_width + xi + 10 * numeral_i];
+                const color = if (bitmap_pixel_color[0] == 255) BLACK else TRANSPARENT;
+                rl.ImageDrawPixel(&numeral_images[numeral_i], @intCast(xi + 5), @intCast(yi), color); 
+            }
+        }
+    }
+        
     for (0..4) |i| {
         numeral_textures[i] = rl.LoadTextureFromImage(numeral_images[i]);
     }
@@ -216,7 +228,11 @@ fn process_input_update_state() void {
     // @temp
     // Change from the main menu to the puzzles when the left mouse is clicked.
     if (mouse_down and ! mouse_down_last_frame) {
-        gamemode = GameMode.puzzles_handcrafted;
+        gamemode = switch (gamemode) {
+            .main_menu           => .puzzles_handcrafted,
+            .puzzles_handcrafted => .main_menu,
+            .puzzles_randomized  => .main_menu,
+        };
     }
 }
 
@@ -251,7 +267,7 @@ fn render_menu() void {
 
     for (0..4) |i| {
         const ii = @as(f32, @floatFromInt(i));
-        _ = draw_texture(&numeral_textures[i], Vec2{200 * ii, 200 * ii}, 50);
+        _ = draw_texture(&numeral_textures[i], Vec2{100 + 200 * ii, 100 + 200 * ii}, 200);
     }
 }
 
@@ -356,14 +372,12 @@ fn draw_centered_rect( pos : Vec2, width : f32, height : f32, color : rl.Color) 
     rl.DrawRectangle(top_left_x, top_left_y, @intFromFloat(width), @intFromFloat(height), color);
 }
 
-fn rlc(r : u8, g : u8, b : u8) rl.Color {
-    const rlcolor = rl.Color{
-        .r = r,
-        .g = g,
-        .b = b,
-        .a = 255,
-    };
-    return rlcolor;
+fn rlc(r : u8, g : u8, b : u8, a : u8) rl.Color {
+    return rl.Color{.r = r, .g = g, .b = b, .a = a};
+}
+
+fn pixel_to_rl(p : Pixel) rl.Color {
+    return rl.Color{.r = p[0], .g = p[1], .b = p[2], .a = p[3]};
 }
 
 fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) f32 {
