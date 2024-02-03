@@ -26,7 +26,6 @@
 
 
 // TODO LIST:
-// --[current]--> *  Create textures for the numbers 1..4 using the bitmap.
 // *  Think about / implement appropriate buttons (not just rects)
 // *  Main menu
 // *  Create a place for possible tiles to be dragged
