@@ -70,6 +70,10 @@ const BLUE      = rlc(0,   0,   255);
 const YELLOW    = rlc(255, 255, 0);
 const MAGENTA   = rlc(255, 0,   255);
 
+const TRANSPARENT = rl.Color{
+        .r = 0, .g = 0, .b = 0, .a = 0,
+};
+
 const DEBUG  = MAGENTA;
 
 
@@ -91,7 +95,7 @@ var gamemode : GameMode = undefined;
 
 // Textures.
 
-var testi_texture : rl.Texture2D = undefined;
+var numeral_textures : [4] rl.Texture2D = undefined;
 
 // Mouse
 var mouse_down            : bool = undefined;
@@ -162,17 +166,28 @@ pub fn main() anyerror!void {
     // Create a rl.Image s from which to generate the textures containing
     // the bitmap numerals in the game.
 
-//    const n1 : i32 = 100;
-    var testi : rl.Image = rl.GenImageColor(5, 5, DEBUG);
-
-
-    rl.ImageDrawRectangle(&testi, 1, 1, 2, 2, YELLOW);
+    // @magic constant alert!
+    // Each character in the bitmap has an x offset that is a multiple of 10.
+    // Each has the same height of 20.
     
-        // TODO... transfer bitmap info onto testi using ImageDrawRectangle;
+    var numeral_images : [4] rl.Image = undefined;
 
-    testi_texture = rl.LoadTextureFromImage(testi);
+    for (0..4) |i| {
+        //        numeral_images = rl.GenImageColor(20, 20, TRANSPARENT);
+        numeral_images[i] = rl.GenImageColor(20, 20, DEBUG);
+    }
 
-//    dprint("{any}\n", .{bitmap_bools}); // @debug
+    // TODO... transfer bitmap info onto testi using ImageDrawRectangle;    
+//    var testi : rl.Image = rl.GenImageColor(5, 5, DEBUG);
+
+//    rl.ImageDrawRectangle(&testi, 1, 1, 2, 2, YELLOW);
+
+    // Initialize the textures for '1', '2', '3', '4'.
+    for (0..4) |i| {
+        numeral_textures[i] = rl.LoadTextureFromImage(numeral_images[i]);
+    }
+
+    //    dprint("{any}\n", .{bitmap_bools}); // @debug
     
     // +----------------+
     // | Main game loop |
@@ -234,7 +249,10 @@ fn render_menu() void {
     const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
     draw_centered_rect(pos, 100, 100, DEBUG);
 
-    _ = draw_texture(&testi_texture, Vec2{200, 200}, 1000);
+    for (0..4) |i| {
+        const ii = @as(f32, @floatFromInt(i));
+        _ = draw_texture(&numeral_textures[i], Vec2{200 * ii, 200 * ii}, 50);
+    }
 }
 
 fn render_puzzle(grid : Grid) void {
@@ -244,7 +262,6 @@ fn render_puzzle(grid : Grid) void {
     const square_length = 0.1  * minimum_screen_dim;
     const bar_thickness = 0.01 * minimum_screen_dim;
     const total_length = 5 * bar_thickness + 4 * square_length;
-
 
     // Draw grid background.
     const background_length = total_length - bar_thickness;
