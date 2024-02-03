@@ -267,7 +267,7 @@ fn render_menu() void {
 
     for (0..4) |i| {
         const ii = @as(f32, @floatFromInt(i));
-        _ = draw_texture(&numeral_textures[i], Vec2{100 + 200 * ii, 100 + 200 * ii}, 200);
+        draw_texture(&numeral_textures[i], Vec2{100 + 200 * ii, 100 + 200 * ii}, 200);
     }
 }
 
@@ -335,32 +335,10 @@ fn render_puzzle(grid : Grid) void {
         const tile_border_length = square_length + tile_border_thickness;
         draw_centered_rect(tile_pos, tile_border_length, tile_border_length, BLACK);
         draw_centered_rect(tile_pos, square_length, square_length, DEBUG);
+        // Draw the some of the numeral bitmaps! // @temp
+        draw_texture(&numeral_textures[i], tile_pos, square_length);
     }
 
-    // Draw the pixels of the bitmap, by drawing a rectangle for each true value
-    // in the bitmap.
-
-    const bitmap_screen_width  = 0.5 * screen_width;
-    const bitmap_screen_height = bitmap_screen_width * @as(f32, bitmap_height) / @as(f32, bitmap_width);
-
-    const pixel_square_size = 0.01 * screen_width;
-    
-    const tl_pixel_corner = Vec2{0.5 * screen_width - 0.5 * bitmap_screen_width, 0.5 * screen_hidth - 0.5 * bitmap_screen_height};
-    const tl_pixel_center = tl_pixel_corner + Vec2{0.5 * pixel_square_size, 0.5 * pixel_square_size};
-    for (0..bitmap_width) |px| {
-        for (0..bitmap_height) |py| {
-            const pixel_pos = tl_pixel_center + Vec2{@as(f32,@floatFromInt(px)) * pixel_square_size, @as(f32,@floatFromInt(py)) * pixel_square_size};
-            // @prolly should get rid of the if...
-            if (bitmap_bools[py * bitmap_width + px]) {
-                const pixel_interior_thickness = 0.75;
-                draw_centered_rect(pixel_pos, pixel_square_size, pixel_square_size, BLACK);
-                draw_centered_rect(pixel_pos, pixel_interior_thickness * pixel_square_size, pixel_interior_thickness * pixel_square_size, WHITE);
-            }
-        }
-    }
-        
-    
-//    draw_centered_rect(.{0.5 * screen_width, 0.5 * screen_hidth}, bitmap_screen_width, bitmap_screen_height, DEBUG); // @debug
 }
 
 
@@ -380,7 +358,7 @@ fn pixel_to_rl(p : Pixel) rl.Color {
     return rl.Color{.r = p[0], .g = p[1], .b = p[2], .a = p[3]};
 }
 
-fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) f32 {
+fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) void {
     const twidth  : f32  = @floatFromInt(texturep.*.width);
     const theight : f32  = @floatFromInt(texturep.*.height);
     
@@ -396,7 +374,6 @@ fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) f32
 
     // The 3rd arg (0) is for rotation.
     rl.DrawTextureEx(texturep.*, dumb_rl_tl_vec2, 0, scaling_ratio, WHITE);
-    return scaled_w;
 }
 
 fn vec2_to_rl(vec : Vec2) rl.Vector2 {
