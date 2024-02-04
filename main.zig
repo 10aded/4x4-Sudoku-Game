@@ -26,6 +26,7 @@
 
 
 // TODO LIST:
+// *  Don't forget an UNDO feature!!!
 // *  Comptime ( or even runtime) parsing of puzzle list
 // *  Think about / implement appropriate buttons (not just rects)
 // *  Main menu
@@ -42,6 +43,30 @@ const rl  = @cImport(@cInclude("raylib.h"));
 const Vec2   = @Vector(2, f32);
 const Pixel = [4] u8;
 
+// Grid Tile Possiblities
+// Note: 0 denotes an empty tile
+// Positive number represents a fixed tile
+// Negative number represents a selected tile.
+
+const Tile = i8;
+
+const Grid = [16] Tile;
+
+const grid1 = Grid{1,0,3,4,
+                   4,3,2,1,
+                   2,1,4,3,
+                   3,4,1,2};
+
+const grid2 = Grid{0,0,0,0,
+                   4,0,0,0,
+                   0,1,0,0,
+                   0,0,0,2};
+
+const GameMode =  enum(u8) {
+    main_menu,
+    puzzles_handcrafted,
+    puzzles_randomized,
+};
 
 // Make space to decode the bitmap at comptime.
 const bitmap = @embedFile("Bitmap-Stuff/8514-bitmap.qoi");
@@ -79,6 +104,16 @@ const initial_screen_hidth = 1080;
 const WINDOW_TITLE = "4x4 Sudoku Game";
 
 // Globals
+// Game
+var gamemode : GameMode = undefined;
+
+// TODO: set this to the result of the (comptime) level parser.
+const handcrafted_levels = [_] Grid{grid1, grid2};
+const NUMBER_OF_HANDCRAFTED_LEVELS = handcrafted_levels.len;
+
+var   current_handcrafted_levels       = handcrafted_levels;
+var   current_handcrafted_level_index : usize = 0;
+
 // Colors
 const grid_fill_color = LIGHTGRAY;
 const grid_bar_color  = BLACK;
@@ -90,8 +125,6 @@ const tile_option_background = LIGHTGRAY;
 
 const background_color = DARKGRAY;
 
-// Game
-var gamemode : GameMode = undefined;
 
 // Textures.
 var numeral_textures : [4] rl.Texture2D = undefined;
@@ -120,25 +153,6 @@ var grid_geometry : Grid_Geometry = undefined;
 
 
 
-// Grid Tile Possiblities
-// Note: 0 denotes an empty tile
-// Positive number represents a fixed tile
-// Negative number represents a selected tile.
-
-const Tile = i8;
-
-const Grid = [16] Tile;
-
-const grid1 = Grid{1,2,3,4,
-                   4,3,2,1,
-                   2,1,4,3,
-                   3,4,1,2};
-
-const GameMode =  enum(u8) {
-    main_menu,
-    puzzles_handcrafted,
-    puzzles_randomized,
-};
 
 // TODO:
 // Write procedure to validate whether or not a given grid is a valid solution.
@@ -272,7 +286,15 @@ fn process_input_update_state() void {
     if (mouse_down and ! mouse_down_last_frame) {
         gamemode = switch (gamemode) {
             .main_menu           => .puzzles_handcrafted,
-            .puzzles_handcrafted => .main_menu,
+            .puzzles_handcrafted => block: {
+                if (current_handcrafted_level_index == NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
+                    current_handcrafted_level_index = 0;
+                    break :block .main_menu;
+                } else {
+                    current_handcrafted_level_index += 1;
+                    break :block .puzzles_handcrafted;
+                }
+            },
             .puzzles_randomized  => .main_menu,
         };
     }
@@ -290,7 +312,7 @@ fn render() void {
             render_menu();  
         },
         .puzzles_handcrafted => {
-            render_puzzle(grid1);
+            render_puzzle();
         },
         .puzzles_randomized => {
             unreachable;
@@ -313,12 +335,15 @@ fn render_menu() void {
     }
 }
 
-fn render_puzzle(grid : Grid) void {
+fn render_puzzle() void {
+    const grid = current_handcrafted_levels[current_handcrafted_level_index];
+    
     const gridpos             = grid_geometry.gridpos;
     const tile_length         = grid_geometry.tile_length;
     const bar_thickness       = grid_geometry.bar_thickness;
     const total_length        = grid_geometry.total_length;
     const grid_tile_positions = grid_geometry.grid_tile_positions;
+    
     // Draw grid background.
     const background_length = total_length - bar_thickness;
     draw_centered_rect(gridpos, background_length, background_length, grid_fill_color);
@@ -410,6 +435,7 @@ fn vec2_to_rl(vec : Vec2) rl.Vector2 {
 // Fixed / moveable tiles have different background colors.
 // These specific color choices are globals. 
 fn draw_tile(tile : Tile, pos : Vec2) void {
+    // Empty tiles should not get drawn!
     if (tile == 0) return;
     const length = grid_geometry.tile_length;
     const texture_index : usize = std.math.absCast(tile) - 1;
