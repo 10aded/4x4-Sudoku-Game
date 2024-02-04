@@ -26,13 +26,14 @@
 
 
 // TODO LIST:
+// *  Comptime ( or even runtime) parsing of puzzle list
 // *  Think about / implement appropriate buttons (not just rects)
 // *  Main menu
 // *  Create a place for possible tiles to be dragged
 // ** Randomized puzzles (of various degrees of difficulty)
 // *  Think about playing game with the keyboard only
 // *  Dragging tiles functionality
-// *  Comptime ( or even runtime) parsing of puzzle list
+
 
 const std = @import("std");
 const qoi = @import("qoi.zig");
@@ -82,6 +83,9 @@ const WINDOW_TITLE = "4x4 Sudoku Game";
 const grid_fill_color = LIGHTGRAY;
 const grid_bar_color  = BLACK;
 
+const tile_fixed_background_color   = grid_fill_color;
+const tile_movable_background_color = DEBUG;
+
 const tile_option_background = LIGHTGRAY;
 
 const background_color = DARKGRAY;
@@ -90,7 +94,6 @@ const background_color = DARKGRAY;
 var gamemode : GameMode = undefined;
 
 // Textures.
-
 var numeral_textures : [4] rl.Texture2D = undefined;
 
 // Mouse
@@ -101,6 +104,21 @@ var mouse_pos             : Vec2 = undefined;
 // Screen geometry
 var screen_width : f32 = undefined;
 var screen_hidth : f32 = undefined;
+
+var minimum_screen_dim : f32 = undefined;
+
+// Grid geometry
+const Grid_Geometry = struct{
+    gridpos             : Vec2,
+    tile_length         : f32,
+    bar_thickness       : f32,
+    total_length        : f32,
+    grid_tile_positions : [16] Vec2,
+};
+
+var grid_geometry : Grid_Geometry = undefined;
+
+
 
 // Grid Tile Possiblities
 // Note: 0 denotes an empty tile
@@ -207,6 +225,9 @@ pub fn main() anyerror!void {
 
         screen_width = @floatFromInt(rl.GetScreenWidth());
         screen_hidth = @floatFromInt(rl.GetScreenHeight());
+        minimum_screen_dim = @min(screen_width, screen_hidth);
+        
+        calculate_geometry();
         
         process_input_update_state();
 
@@ -214,6 +235,28 @@ pub fn main() anyerror!void {
     }
 }
 
+fn calculate_geometry() void {
+    // Calculate the sizes of much of the global geometry.
+    const gridpos       = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
+    const tile_length = 0.1  * minimum_screen_dim;
+    const bar_thickness = 0.01 * minimum_screen_dim;
+    const total_length  = 5 * bar_thickness + 4 * tile_length;
+    grid_geometry.gridpos       = gridpos;
+    grid_geometry.tile_length = tile_length;
+    grid_geometry.bar_thickness = bar_thickness;
+    grid_geometry.total_length  = total_length;
+
+    const tl_tile_pos = gridpos - Vec2{1.5 * ( tile_length + bar_thickness), 1.5 * ( tile_length + bar_thickness)};
+    
+    for (0..4) |yi| {
+        for (0..4) |xi| {
+            const xif = @as(f32, @floatFromInt(xi));
+            const yif = @as(f32, @floatFromInt(yi));
+            const tile_pos = tl_tile_pos + Vec2{xif * (tile_length + bar_thickness), yif * (tile_length + bar_thickness)};
+            grid_geometry.grid_tile_positions[4 * yi + xi] = tile_pos;
+        }
+    }
+}
 
 fn process_input_update_state() void {
     // Mouse input processing.
@@ -271,57 +314,37 @@ fn render_menu() void {
 }
 
 fn render_puzzle(grid : Grid) void {
-    const gridpos = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
-    // Set sizes of grid elements.
-    const minimum_screen_dim = @min(screen_width, screen_hidth);
-    const square_length = 0.1  * minimum_screen_dim;
-    const bar_thickness = 0.01 * minimum_screen_dim;
-    const total_length = 5 * bar_thickness + 4 * square_length;
-
+    const gridpos             = grid_geometry.gridpos;
+    const tile_length         = grid_geometry.tile_length;
+    const bar_thickness       = grid_geometry.bar_thickness;
+    const total_length        = grid_geometry.total_length;
+    const grid_tile_positions = grid_geometry.grid_tile_positions;
     // Draw grid background.
     const background_length = total_length - bar_thickness;
     draw_centered_rect(gridpos, background_length, background_length, grid_fill_color);
 
     // Draw the (non-empty) tiles in the grid.
-    // @temp (!!!)
-    // 1 |-> red
-    // 2 |-> green
-    // 3 |-> blue
-    // 4 |-> yellow
-
-    const tl_square_pos = gridpos - Vec2{1.5 * ( square_length + bar_thickness), 1.5 * ( square_length + bar_thickness)};
-    
-    for (grid, 0..) |tile, i| {
-        const xi = @as(f32, @floatFromInt(i % 4));
-        const yi = @as(f32, @floatFromInt(i / 4));
-        const color = switch(tile) {
-            1 => RED,
-            2 => GREEN,
-            3 => BLUE,
-            4 => YELLOW,
-            else => DEBUG,
-        };
-        const rect_pos = tl_square_pos + Vec2{xi * (square_length + bar_thickness), yi * (square_length + bar_thickness)};
-        const tile_len = square_length + 0.5 * bar_thickness;
-        draw_centered_rect(rect_pos, tile_len, tile_len, color);
+    for (grid, 0..) |tile, ti| {
+        const tile_pos = grid_tile_positions[ti];
+        draw_tile(tile, tile_pos);
     }
 
         // Draw vertical grid bars.
     for (0..5) |i| {
         const offset = @as(f32, @floatFromInt(i)) - 2;
-        draw_centered_rect(gridpos + Vec2{offset * (square_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
-        draw_centered_rect(gridpos + Vec2{0, offset * (square_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
+        draw_centered_rect(gridpos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
+        draw_centered_rect(gridpos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
     }
 
     // Draw tile options.
     const background_rect_pos = Vec2{0.5 * screen_width, 0.75 * screen_hidth};
     const tile_option_spacing = 0.015 * minimum_screen_dim;
-    const background_rect_width  = 4 * square_length + 3 * bar_thickness + 2 * tile_option_spacing;
-    const background_rect_height = 1 * square_length +                     2 * tile_option_spacing;
+    const background_rect_width  = 4 * tile_length + 3 * bar_thickness + 2 * tile_option_spacing;
+    const background_rect_height = 1 * tile_length +                     2 * tile_option_spacing;
     draw_centered_rect(background_rect_pos, background_rect_width, background_rect_height, tile_option_background);
 
     const tile_border_thickness = 0.005 * minimum_screen_dim;
-    const left_tile_option_pos  = background_rect_pos - Vec2{1.5 * (square_length + bar_thickness), 0};
+    const left_tile_option_pos  = background_rect_pos - Vec2{1.5 * (tile_length + bar_thickness), 0};
     
     for (0..4) |i| {
         // TODO: Write a proc which draws an arbitrary tile at an
@@ -329,13 +352,13 @@ fn render_puzzle(grid : Grid) void {
         // to use it.
         const offset = @as(f32, @floatFromInt(i));
 
-        const tile_pos = left_tile_option_pos + Vec2{offset * (square_length + bar_thickness), 0};
+        const tile_pos = left_tile_option_pos + Vec2{offset * (tile_length + bar_thickness), 0};
         // @temp!
-        const tile_border_length = square_length + tile_border_thickness;
+        const tile_border_length = tile_length + tile_border_thickness;
         draw_centered_rect(tile_pos, tile_border_length, tile_border_length, BLACK);
-        draw_centered_rect(tile_pos, square_length, square_length, DEBUG);
+        draw_centered_rect(tile_pos, tile_length, tile_length, DEBUG);
         // Draw the some of the numeral bitmaps! // @temp
-        draw_texture(&numeral_textures[i], tile_pos, square_length);
+        draw_texture(&numeral_textures[i], tile_pos, tile_length);
     }
 
 }
@@ -381,4 +404,17 @@ fn vec2_to_rl(vec : Vec2) rl.Vector2 {
         .y = vec[1],
     };
     return dumb_rl_tl_vec2;
+}
+
+// Draw tiles, both those that are fixed and movable.
+// Fixed / moveable tiles have different background colors.
+// These specific color choices are globals. 
+fn draw_tile(tile : Tile, pos : Vec2) void {
+    if (tile == 0) return;
+    const length = grid_geometry.tile_length;
+    const texture_index : usize = std.math.absCast(tile) - 1;
+    const tile_texture_ptr = &numeral_textures[texture_index];
+    const tile_background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
+    draw_centered_rect(pos, length, length, tile_background_color);
+    draw_texture(tile_texture_ptr, pos, length);
 }
