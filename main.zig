@@ -26,15 +26,15 @@
 
 
 // TODO LIST:
-// *  ***[current]*** Comptime ( or even runtime) parsing of puzzle list
 // *  Don't forget an UNDO feature!!!
-// *  Think about / implement appropriate buttons (not just rects)
+// ---[current]---> Think about / implement buttons (and just do rects)
+// *  Dragging tiles functionality
+// *  Do README file
 // *  Main menu
 // *  Create a place for possible tiles to be dragged
-// ** Randomized puzzles (of various degrees of difficulty)
 // *  Think about playing game with the keyboard only
-// *  Dragging tiles functionality
 
+// ** Randomized puzzles (of various degrees of difficulty)
 
 const std    = @import("std");
 const qoi    = @import("qoi.zig");
@@ -48,7 +48,6 @@ const Pixel = [4] u8;
 // Note: 0 denotes an empty tile
 // Positive number represents a fixed tile
 // Negative number represents a selected tile.
-
 const Tile = i8;
 
 const Grid = [16] Tile;
@@ -67,6 +66,18 @@ const GameMode =  enum(u8) {
     puzzles_randomized,
 };
 
+const Color = [4] u8;
+
+const Button = struct {
+    width  : f32,
+    height : f32,
+    pos    : Vec2,
+    color1_def : Color,
+    color2_def : Color,
+    color1_hov : Color,
+    color2_hov : Color,
+};
+
 // Make space to decode the bitmap at comptime.
 const bitmap = @embedFile("Bitmap-Stuff/8514-bitmap.qoi");
 const bitmap_header = qoi.comptime_header_parser(bitmap);
@@ -83,18 +94,19 @@ const dprint  = std.debug.print;
 
 // Constants
 // UI Colors
-const BLACK     = rlc(  0,   0,   0, 255);
-const DARKGRAY  = rlc( 40,  40,  40, 255);
-const LIGHTGRAY = rlc(200, 200, 200, 255);
-const WHITE     = rlc(255, 255, 255, 255);
+//const BLACK     = rlc(  0,   0,   0, 255);
+const BLACK     = Color{  0,   0,   0, 255};
+const DARKGRAY  = Color{ 40,  40,  40, 255};
+const LIGHTGRAY = Color{200, 200, 200, 255};
+const WHITE     = Color{255, 255, 255, 255};
 
-const RED       = rlc(255,   0,   0, 255);
-const GREEN     = rlc(  0, 255,   0, 255);
-const BLUE      = rlc(  0,   0, 255, 255);
-const YELLOW    = rlc(255, 255,   0, 255);
-const MAGENTA   = rlc(255,   0, 255, 255);
+const RED       = Color{255,   0,   0, 255};
+const GREEN     = Color{  0, 255,   0, 255};
+const BLUE      = Color{  0,   0, 255, 255};
+const YELLOW    = Color{255, 255,   0, 255};
+const MAGENTA   = Color{255,   0, 255, 255};
 
-const TRANSPARENT = rlc(0,0,0,0);
+const TRANSPARENT = Color{0,0,0,0};
 
 const DEBUG  = MAGENTA;
 
@@ -105,8 +117,6 @@ const WINDOW_TITLE = "4x4 Sudoku Game";
 // Globals
 // Game
 var gamemode : GameMode = undefined;
-
-
 
 var   current_handcrafted_levels       = handcrafted_levels;
 var   current_handcrafted_level_index : usize = 0;
@@ -147,9 +157,6 @@ const Grid_Geometry = struct{
 };
 
 var grid_geometry : Grid_Geometry = undefined;
-
-
-
 
 // TODO:
 // Write procedure to validate whether or not a given grid is a valid solution.
@@ -195,7 +202,7 @@ pub fn main() anyerror!void {
     var numeral_images : [4] rl.Image = undefined;
 
     for (0..4) |i| {
-        numeral_images[i] = rl.GenImageColor(20, 20, TRANSPARENT);
+        numeral_images[i] = rl.GenImageColor(20, 20, rlc(TRANSPARENT));
 //        numeral_images[i] = rl.GenImageColor(20, 20, DEBUG); // @debug
     }
 
@@ -218,7 +225,7 @@ pub fn main() anyerror!void {
             for (0..10) |xi| {
                 const bitmap_pixel_color = bitmap_pixels[yi * bitmap_width + xi + 10 * numeral_i];
                 const color = if (bitmap_pixel_color[0] == 255) BLACK else TRANSPARENT;
-                rl.ImageDrawPixel(&numeral_images[numeral_i], @intCast(xi + 5), @intCast(yi), color); 
+                rl.ImageDrawPixel(&numeral_images[numeral_i], @intCast(xi + 5), @intCast(yi), rlc(color)); 
             }
         }
     }
@@ -302,7 +309,7 @@ fn render() void {
     rl.BeginDrawing();
     defer rl.EndDrawing();
 
-    rl.ClearBackground(background_color);
+    rl.ClearBackground(rlc(background_color));
 
     switch(gamemode) {
         .main_menu => {
@@ -388,18 +395,14 @@ fn render_puzzle() void {
 
 // Draw a plain (colored) rectangle, where the position determines the center.
 
-fn draw_centered_rect( pos : Vec2, width : f32, height : f32, color : rl.Color) void {
+fn draw_centered_rect( pos : Vec2, width : f32, height : f32, color : Color) void {
     const top_left_x : i32 = @intFromFloat(pos[0] - 0.5 * width);
     const top_left_y : i32 = @intFromFloat(pos[1] - 0.5 * height);
-    rl.DrawRectangle(top_left_x, top_left_y, @intFromFloat(width), @intFromFloat(height), color);
+    rl.DrawRectangle(top_left_x, top_left_y, @intFromFloat(width), @intFromFloat(height), rlc(color));
 }
 
-fn rlc(r : u8, g : u8, b : u8, a : u8) rl.Color {
-    return rl.Color{.r = r, .g = g, .b = b, .a = a};
-}
-
-fn pixel_to_rl(p : Pixel) rl.Color {
-    return rl.Color{.r = p[0], .g = p[1], .b = p[2], .a = p[3]};
+fn rlc(color : Color) rl.Color {
+    return rl.Color{.r = color[0], .g = color[1], .b = color[2], .a = color[3]};
 }
 
 fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) void {
@@ -417,7 +420,7 @@ fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) voi
     };
 
     // The 3rd arg (0) is for rotation.
-    rl.DrawTextureEx(texturep.*, dumb_rl_tl_vec2, 0, scaling_ratio, WHITE);
+    rl.DrawTextureEx(texturep.*, dumb_rl_tl_vec2, 0, scaling_ratio, rlc(WHITE));
 }
 
 fn vec2_to_rl(vec : Vec2) rl.Vector2 {
