@@ -39,9 +39,13 @@
 const std    = @import("std");
 const qoi    = @import("qoi.zig");
 const parser = @import("level-parser.zig");
+const shapes = @import("shapes.zig");
+const button = @import("buttons.zig");
+
 const rl     = @cImport(@cInclude("raylib.h"));
 
 const Vec2   = @Vector(2, f32);
+const Color = [4] u8;
 const Pixel = [4] u8;
 
 // Grid Tile Possiblities
@@ -66,17 +70,8 @@ const GameMode =  enum(u8) {
     puzzles_randomized,
 };
 
-const Color = [4] u8;
 
-const Button = struct {
-    width  : f32,
-    height : f32,
-    pos    : Vec2,
-    color1_def : Color,
-    color2_def : Color,
-    color1_hov : Color,
-    color2_hov : Color,
-};
+const Button = button.Button;
 
 // Make space to decode the bitmap at comptime.
 const bitmap = @embedFile("Bitmap-Stuff/8514-bitmap.qoi");
@@ -132,6 +127,11 @@ const tile_option_background = LIGHTGRAY;
 
 const background_color = DARKGRAY;
 
+const arrow_button_background_def_color   = LIGHTGRAY;
+const arrow_button_detail_def_color       = YELLOW;
+const arrow_button_background_hover_color = DEBUG;
+const arrow_button_detail_hover_color     = DEBUG;
+
 
 // Textures.
 var numeral_textures : [4] rl.Texture2D = undefined;
@@ -146,6 +146,21 @@ var screen_width : f32 = undefined;
 var screen_hidth : f32 = undefined;
 
 var minimum_screen_dim : f32 = undefined;
+
+// Buttons
+const arrow_button_defaults  = button.Button{
+    .hovering = false,
+    .width = 0,
+    .height = 0,
+    .pos = .{0,0},
+	.color1_def = arrow_button_background_def_color,
+	.color2_def = arrow_button_detail_def_color,
+	.color1_hov = arrow_button_background_hover_color,
+	.color2_hov = arrow_button_detail_hover_color,
+};
+
+var left_arrow_button  = arrow_button_defaults;
+var right_arrow_button = arrow_button_defaults;
 
 // Grid geometry
 const Grid_Geometry = struct{
@@ -253,8 +268,9 @@ pub fn main() anyerror!void {
     }
 }
 
+// Calculate the sizes of much of the global geometry.
 fn calculate_geometry() void {
-    // Calculate the sizes of much of the global geometry.
+    // Grid calculations.
     const gridpos       = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
     const tile_length = 0.1  * minimum_screen_dim;
     const bar_thickness = 0.01 * minimum_screen_dim;
@@ -274,6 +290,22 @@ fn calculate_geometry() void {
             grid_geometry.grid_tile_positions[4 * yi + xi] = tile_pos;
         }
     }
+
+    // Button calculations.
+    const button_width  =  0.9 * tile_length;
+    const button_height =  0.75   * button_width;
+    const left_posx  = grid_geometry.grid_tile_positions[0][0];
+    const right_posx = grid_geometry.grid_tile_positions[3][0];
+    const left_posy  = 0.5 * (grid_geometry.grid_tile_positions[0][1] - 0.5 * tile_length - bar_thickness);
+    const right_posy = left_posy;
+    
+    left_arrow_button.width  = button_width;
+    left_arrow_button.height = button_height;
+    left_arrow_button.pos    = .{left_posx, left_posy};
+
+    right_arrow_button.width  = button_width;
+    right_arrow_button.height = button_height;
+    right_arrow_button.pos    = .{right_posx, right_posy};
 }
 
 fn process_input_update_state() void {
@@ -331,7 +363,7 @@ fn render() void {
 
 fn render_menu() void {
     const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
-    draw_centered_rect(pos, 100, 100, DEBUG);
+    shapes.draw_centered_rect(pos, 100, 100, DEBUG);
 
     for (0..4) |i| {
         const ii = @as(f32, @floatFromInt(i));
@@ -347,10 +379,13 @@ fn render_puzzle() void {
     const bar_thickness       = grid_geometry.bar_thickness;
     const total_length        = grid_geometry.total_length;
     const grid_tile_positions = grid_geometry.grid_tile_positions;
+
+    button.render_arrow(left_arrow_button, true);
+    button.render_arrow(right_arrow_button, false);
     
     // Draw grid background.
     const background_length = total_length - bar_thickness;
-    draw_centered_rect(gridpos, background_length, background_length, grid_fill_color);
+    shapes.draw_centered_rect(gridpos, background_length, background_length, grid_fill_color);
 
     // Draw the (non-empty) tiles in the grid.
     for (grid, 0..) |tile, ti| {
@@ -361,8 +396,8 @@ fn render_puzzle() void {
         // Draw vertical grid bars.
     for (0..5) |i| {
         const offset = @as(f32, @floatFromInt(i)) - 2;
-        draw_centered_rect(gridpos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
-        draw_centered_rect(gridpos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
+        shapes.draw_centered_rect(gridpos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
+        shapes.draw_centered_rect(gridpos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
     }
 
     // Draw tile options.
@@ -370,7 +405,7 @@ fn render_puzzle() void {
     const tile_option_spacing = 0.015 * minimum_screen_dim;
     const background_rect_width  = 4 * tile_length + 3 * bar_thickness + 2 * tile_option_spacing;
     const background_rect_height = 1 * tile_length +                     2 * tile_option_spacing;
-    draw_centered_rect(background_rect_pos, background_rect_width, background_rect_height, tile_option_background);
+    shapes.draw_centered_rect(background_rect_pos, background_rect_width, background_rect_height, tile_option_background);
 
     const tile_border_thickness = 0.005 * minimum_screen_dim;
     const left_tile_option_pos  = background_rect_pos - Vec2{1.5 * (tile_length + bar_thickness), 0};
@@ -384,21 +419,12 @@ fn render_puzzle() void {
         const tile_pos = left_tile_option_pos + Vec2{offset * (tile_length + bar_thickness), 0};
         // @temp!
         const tile_border_length = tile_length + tile_border_thickness;
-        draw_centered_rect(tile_pos, tile_border_length, tile_border_length, BLACK);
-        draw_centered_rect(tile_pos, tile_length, tile_length, DEBUG);
+        shapes.draw_centered_rect(tile_pos, tile_border_length, tile_border_length, BLACK);
+        shapes.draw_centered_rect(tile_pos, tile_length, tile_length, DEBUG);
         // Draw the some of the numeral bitmaps! // @temp
         draw_texture(&numeral_textures[i], tile_pos, tile_length);
-    }
+    } 
 
-}
-
-
-// Draw a plain (colored) rectangle, where the position determines the center.
-
-fn draw_centered_rect( pos : Vec2, width : f32, height : f32, color : Color) void {
-    const top_left_x : i32 = @intFromFloat(pos[0] - 0.5 * width);
-    const top_left_y : i32 = @intFromFloat(pos[1] - 0.5 * height);
-    rl.DrawRectangle(top_left_x, top_left_y, @intFromFloat(width), @intFromFloat(height), rlc(color));
 }
 
 fn rlc(color : Color) rl.Color {
@@ -441,6 +467,6 @@ fn draw_tile(tile : Tile, pos : Vec2) void {
     const texture_index : usize = std.math.absCast(tile) - 1;
     const tile_texture_ptr = &numeral_textures[texture_index];
     const tile_background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
-    draw_centered_rect(pos, length, length, tile_background_color);
+    shapes.draw_centered_rect(pos, length, length, tile_background_color);
     draw_texture(tile_texture_ptr, pos, length);
 }
