@@ -26,8 +26,8 @@
 
 
 // TODO LIST:
+// *  ***[current]*** Comptime ( or even runtime) parsing of puzzle list
 // *  Don't forget an UNDO feature!!!
-// *  Comptime ( or even runtime) parsing of puzzle list
 // *  Think about / implement appropriate buttons (not just rects)
 // *  Main menu
 // *  Create a place for possible tiles to be dragged
@@ -36,9 +36,10 @@
 // *  Dragging tiles functionality
 
 
-const std = @import("std");
-const qoi = @import("qoi.zig");
-const rl  = @cImport(@cInclude("raylib.h"));
+const std    = @import("std");
+const qoi    = @import("qoi.zig");
+const parser = @import("level-parser.zig");
+const rl     = @cImport(@cInclude("raylib.h"));
 
 const Vec2   = @Vector(2, f32);
 const Pixel = [4] u8;
@@ -52,15 +53,13 @@ const Tile = i8;
 
 const Grid = [16] Tile;
 
-const grid1 = Grid{1,0,3,4,
-                   4,3,2,1,
-                   2,1,4,3,
-                   3,4,1,2};
+const handcrafted_levels           = parser.parse_levels();
+const NUMBER_OF_HANDCRAFTED_LEVELS = handcrafted_levels.len;
 
-const grid2 = Grid{0,0,0,0,
-                   4,0,0,0,
-                   0,1,0,0,
-                   0,0,0,2};
+// const grid1 = Grid{1,0,3,4,
+//                    4,3,2,1,
+//                    2,1,4,3,
+//                    3,4,1,2};
 
 const GameMode =  enum(u8) {
     main_menu,
@@ -107,9 +106,7 @@ const WINDOW_TITLE = "4x4 Sudoku Game";
 // Game
 var gamemode : GameMode = undefined;
 
-// TODO: set this to the result of the (comptime) level parser.
-const handcrafted_levels = [_] Grid{grid1, grid2};
-const NUMBER_OF_HANDCRAFTED_LEVELS = handcrafted_levels.len;
+
 
 var   current_handcrafted_levels       = handcrafted_levels;
 var   current_handcrafted_level_index : usize = 0;

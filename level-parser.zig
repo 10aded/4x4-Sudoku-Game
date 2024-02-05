@@ -6,12 +6,13 @@ const dprint  = std.debug.print;
 const Tile = i8;
 const Grid = [16] Tile;
 
-const NUMBER_OF_LEVELS = 2;
+const NUMBER_OF_LEVELS = 3;
 const LEVEL_FILENAME   = "levels.txt";
 
 const level_string_data = @embedFile(LEVEL_FILENAME);
 
 pub fn parse_levels() [NUMBER_OF_LEVELS] Grid {
+    @setEvalBranchQuota(10_000);
     var level_data : [NUMBER_OF_LEVELS] Grid = undefined;
     
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -37,7 +38,7 @@ pub fn parse_levels() [NUMBER_OF_LEVELS] Grid {
             dassert(0 <= tile and tile <= 4);
             current_level[4 * grid_row_number + i] = tile;
         }
-        dprint("DEBUG: current level:{any}\n", .{current_level}); // @debug
+//        dprint("DEBUG: current level:{any}\n", .{current_level}); // @debug
         grid_row_number = grid_row_number + 1;
 
         if (grid_row_number == 4) {
@@ -50,10 +51,5 @@ pub fn parse_levels() [NUMBER_OF_LEVELS] Grid {
     // of levels processed actually equals NUMBER_OF_LEVELS.
     dassert(current_level_index == NUMBER_OF_LEVELS);
     return level_data;
-}
-
-pub fn main() void {
-    const level_data = parse_levels();
-    dprint("Levels:\n{any}\n", .{level_data});    
 }
 
