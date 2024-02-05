@@ -1,0 +1,18 @@
+// The file where the handcrafted levels for the game get loaded from during compilation.
+// Key:
+// 0           --- empty tile
+// 1,2,3,4     --- fixed tiles
+// Note: All moveable tiles in the game are moved onto the
+// grid, so do not need to be accounted for in these levels.
+
+// Level 1
+1034
+4321
+2143
+3412
+
+// Level 2
+0000
+4000
+0100
+0002
