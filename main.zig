@@ -26,6 +26,7 @@
 
 
 // TODO LIST:
+// *  Write procedure to validate whether or not a given grid is a valid solution.
 // *  Don't forget an UNDO feature!!!
 // *  Dragging tiles functionality
 // *  Do README file
@@ -189,10 +190,16 @@ const Grid_Geometry = struct{
     grid_tile_positions : [16] Vec2,
 };
 
-var grid_geometry : Grid_Geometry = undefined;
+// Tile options geometry
+// TODO: Add in the other measurements needed to draw the
+// tile options / use this info in render_puzzle().
+const Tile_Options_Geometry = struct{
+    background_rect_pos    : Vec2,
+    tile_positions : [4] Vec2,
+};
 
-// TODO:
-// Write procedure to validate whether or not a given grid is a valid solution.
+var grid_geometry         : Grid_Geometry = undefined;
+var tile_options_geometry : Tile_Options_Geometry = undefined;
 
 pub fn main() anyerror!void {
 
@@ -308,6 +315,18 @@ fn calculate_geometry() void {
             grid_geometry.grid_tile_positions[4 * yi + xi] = tile_pos;
         }
     }
+
+    // Tile options calculations.
+    const background_rect_pos   = Vec2{0.5 * screen_width, 0.75 * screen_hidth};
+    tile_options_geometry.background_rect_pos = background_rect_pos;
+    const left_tile_option_pos  = background_rect_pos - Vec2{1.5 * (tile_length + bar_thickness), 0};
+    
+    for (0..4) |i| {
+        const offset = @as(f32, @floatFromInt(i));
+        const tile_pos = left_tile_option_pos + Vec2{offset * (tile_length + bar_thickness), 0};
+        tile_options_geometry.tile_positions[i] = tile_pos;
+    }
+    
     // Menu button calculations.
     const menu_button_width   = 0.5 * screen_width;
     const menu_button_height  = 0.1 * screen_hidth;
@@ -454,18 +473,16 @@ fn render_puzzle() void {
     }
 
     // Draw tile options.
-    const background_rect_pos = Vec2{0.5 * screen_width, 0.75 * screen_hidth};
+    // TODO:
+    // set this in calculate...() using the tile_options_geometry struct.
+    const background_rect_pos = tile_options_geometry.background_rect_pos;
     const tile_option_spacing = 0.015 * minimum_screen_dim;
     const background_rect_width  = 4 * tile_length + 3 * bar_thickness + 2 * tile_option_spacing;
     const background_rect_height = 1 * tile_length +                     2 * tile_option_spacing;
     shapes.draw_centered_rect(background_rect_pos, background_rect_width, background_rect_height, tile_option_background);
 
-    const left_tile_option_pos  = background_rect_pos - Vec2{1.5 * (tile_length + bar_thickness), 0};
-    
     for (0..4) |i| {
-        const offset = @as(f32, @floatFromInt(i));
-        const tile_pos = left_tile_option_pos + Vec2{offset * (tile_length + bar_thickness), 0};
-        draw_tile(@intCast(i + 1), tile_pos);
+        draw_tile(@intCast(i + 1), tile_options_geometry.tile_positions[i]);
     } 
 
 }
