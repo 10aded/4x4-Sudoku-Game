@@ -92,6 +92,7 @@ const dprint  = std.debug.print;
 //const BLACK     = rlc(  0,   0,   0, 255);
 const BLACK     = Color{  0,   0,   0, 255};
 const DARKGRAY  = Color{ 40,  40,  40, 255};
+const MIDGRAY   = Color{100, 100, 100, 255};
 const LIGHTGRAY = Color{200, 200, 200, 255};
 const WHITE     = Color{255, 255, 255, 255};
 
@@ -128,12 +129,11 @@ const tile_option_background = LIGHTGRAY;
 const background_color = DARKGRAY;
 
 const arrow_button_background_def_color   = LIGHTGRAY;
-const arrow_button_detail_def_color       = YELLOW;
-const arrow_button_background_hover_color = DEBUG;
-const arrow_button_detail_hover_color     = DEBUG;
+const arrow_button_detail_def_color       = DARKGRAY;
+const arrow_button_background_hover_color = LIGHTGRAY;
+const arrow_button_detail_hover_color     = YELLOW;
 
 
-// Textures.
 var numeral_textures : [4] rl.Texture2D = undefined;
 
 // Mouse
@@ -190,12 +190,12 @@ pub fn main() anyerror!void {
     rl.SetTargetFPS(144);
 
     // Import font from embedded file.
-//    const merriweather_font = rl.LoadFontFromMemory(".ttf", merriweather_ttf, merriweather_ttf.len, 108, null, 95);
+    //    const merriweather_font = rl.LoadFontFromMemory(".ttf", merriweather_ttf, merriweather_ttf.len, 108, null, 95);
 
     // button_option_font = merriweather_font;
     // attribution_font   = merriweather_font;
     
-//    const random = prng.random();
+    //    const random = prng.random();
 
     gamemode = GameMode.main_menu;
 
@@ -218,13 +218,13 @@ pub fn main() anyerror!void {
 
     for (0..4) |i| {
         numeral_images[i] = rl.GenImageColor(20, 20, rlc(TRANSPARENT));
-//        numeral_images[i] = rl.GenImageColor(20, 20, DEBUG); // @debug
+        //        numeral_images[i] = rl.GenImageColor(20, 20, DEBUG); // @debug
     }
 
     // TODO... transfer bitmap info onto testi using ImageDrawRectangle;    
-//    var testi : rl.Image = rl.GenImageColor(5, 5, DEBUG);
+    //    var testi : rl.Image = rl.GenImageColor(5, 5, DEBUG);
 
-//    rl.ImageDrawRectangle(&testi, 1, 1, 2, 2, YELLOW);
+    //    rl.ImageDrawRectangle(&testi, 1, 1, 2, 2, YELLOW);
 
     // Initialize the textures for '1', '2', '3', '4'.
     // Since the images have a width of 20, but the numerals have a width
@@ -244,7 +244,7 @@ pub fn main() anyerror!void {
             }
         }
     }
-        
+    
     for (0..4) |i| {
         numeral_textures[i] = rl.LoadTextureFromImage(numeral_images[i]);
     }
@@ -317,25 +317,61 @@ fn process_input_update_state() void {
     mouse_down = rl.IsMouseButtonDown(rl.MOUSE_BUTTON_LEFT);
     defer mouse_down_last_frame = mouse_down;
 
-    // @temp
-    // Change from the main menu to the puzzles when the left mouse is clicked.
-    if (mouse_down and ! mouse_down_last_frame) {
-        gamemode = switch (gamemode) {
-            .main_menu           => .puzzles_handcrafted,
-            .puzzles_handcrafted => block: {
-                if (current_handcrafted_level_index == NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
-                    current_handcrafted_level_index = 0;
-                    break :block .main_menu;
-                } else {
-                    current_handcrafted_level_index += 1;
-                    break :block .puzzles_handcrafted;
-                }
-            },
-            .puzzles_randomized  => .main_menu,
-        };
+    // Do hover / click logic for the type of screen that the current frame is on.
+    switch(gamemode) {
+        .main_menu => {
+            process_menu_hover_clicks();
+        },
+        .puzzles_handcrafted => {
+            //..
+            // TODO:
+            // Detection logic for the buttons.
+            process_puzzle_hover_clicks();
+        },
+        .puzzles_randomized => unreachable,
     }
 }
 
+fn process_menu_hover_clicks() void {
+    if (mouse_down and ! mouse_down_last_frame) {
+        gamemode = .puzzles_handcrafted;
+    }
+}
+
+fn process_puzzle_hover_clicks() void {
+    // Determine whether the mouse is hovering on either of the arrow buttons.
+    button.set_hover_status(mouse_pos, &left_arrow_button);
+    button.set_hover_status(mouse_pos, &right_arrow_button);
+
+    // Left arrow click moves to previous level.
+    if (mouse_down and ! mouse_down_last_frame and left_arrow_button.hovering) {
+        if (current_handcrafted_level_index != 0) {
+            current_handcrafted_level_index -= 1;
+        }
+    }
+    // Right arrow click moves to next level.
+    if (mouse_down and ! mouse_down_last_frame and right_arrow_button.hovering) {
+        if (current_handcrafted_level_index != NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
+            current_handcrafted_level_index += 1;
+        }
+    }    
+}
+// change from the main menu to the puzzles when the left mouse is clicked.
+// if (mouse_down and ! mouse_down_last_frame) {
+//     gamemode = switch (gamemode) {
+//         .main_menu           => .puzzles_handcrafted,
+//         .puzzles_handcrafted => block: {
+//             if (current_handcrafted_level_index == NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
+//                 current_handcrafted_level_index = 0;
+//                 break :block .main_menu;
+//             } else {
+//                 current_handcrafted_level_index += 1;
+//                 break :block .puzzles_handcrafted;
+//             }
+//         },
+//         .puzzles_randomized  => .main_menu,
+//     };
+// }
 
 fn render() void {
     rl.BeginDrawing();
@@ -393,7 +429,7 @@ fn render_puzzle() void {
         draw_tile(tile, tile_pos);
     }
 
-        // Draw vertical grid bars.
+    // Draw vertical grid bars.
     for (0..5) |i| {
         const offset = @as(f32, @floatFromInt(i)) - 2;
         shapes.draw_centered_rect(gridpos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);

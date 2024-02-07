@@ -23,10 +23,18 @@ pub fn render_arrow(b : Button, arrow_is_pointing_left : bool) void {
     // Background first.    
     shapes.draw_centered_rect(pos, b.width, b.height, background_color);
     // Draw arrow body.
-    shapes.draw_centered_rect(b.pos + Vec2{dir * 0.1 * b.width, 0}, 0.8 * b.width, 0.4 * b.height, detail_color);
+    shapes.draw_centered_rect(b.pos + Vec2{dir * 0.1 * b.width, 0}, 0.5 * b.width, 0.4 * b.height, detail_color);
     // Draw arrowhead triangle.
-    const p1 = Vec2{b.pos[0] - dir * 0.5 * b.width, b.pos[1]};
-    const p2 = Vec2{b.pos[0] - dir * 0.1 * b.width, b.pos[1] - 0.5 * b.height};
-    const p3 = Vec2{b.pos[0] - dir * 0.1 * b.width, b.pos[1] + 0.5 * b.height};
+    const p1 = Vec2{b.pos[0] - dir * 0.4 * b.width, b.pos[1]};
+    const p2 = Vec2{b.pos[0] - dir * 0.1 * b.width, b.pos[1] - 0.4 * b.height};
+    const p3 = Vec2{b.pos[0] - dir * 0.1 * b.width, b.pos[1] + 0.4 * b.height};
     shapes.draw_triangle(p1, p2, p3, detail_color);
+}
+
+pub fn set_hover_status(pos : Vec2, button : *Button) void {
+    const button_center = button.pos;
+    const xpos = pos[0];
+    const ypos = pos[1];
+    const in_rect = @fabs(xpos - button_center[0]) < 0.5 * button.width and @fabs(ypos - button_center[1]) < 0.5 * button.height;
+    button.hovering = in_rect;
 }
