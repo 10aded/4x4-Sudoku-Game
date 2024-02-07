@@ -128,11 +128,16 @@ const tile_option_background = LIGHTGRAY;
 
 const background_color = DARKGRAY;
 
+// Button Colors
+const menu_button_background_def_color   = LIGHTGRAY;
+const menu_button_detail_def_color       = BLACK;
+const menu_button_background_hover_color = YELLOW;
+const menu_button_detail_hover_color     = BLACK;
+
 const arrow_button_background_def_color   = LIGHTGRAY;
 const arrow_button_detail_def_color       = DARKGRAY;
 const arrow_button_background_hover_color = LIGHTGRAY;
 const arrow_button_detail_hover_color     = YELLOW;
-
 
 var numeral_textures : [4] rl.Texture2D = undefined;
 
@@ -148,6 +153,17 @@ var screen_hidth : f32 = undefined;
 var minimum_screen_dim : f32 = undefined;
 
 // Buttons
+const menu_button_defaults  = button.Button{
+    .hovering = false,
+    .width = 0,
+    .height = 0,
+    .pos = .{0,0},
+	.color1_def = menu_button_background_def_color,
+	.color2_def = menu_button_detail_def_color,
+	.color1_hov = menu_button_background_hover_color,
+	.color2_hov = menu_button_detail_hover_color,
+};
+
 const arrow_button_defaults  = button.Button{
     .hovering = false,
     .width = 0,
@@ -159,8 +175,10 @@ const arrow_button_defaults  = button.Button{
 	.color2_hov = arrow_button_detail_hover_color,
 };
 
+// The actual buttons...
 var left_arrow_button  = arrow_button_defaults;
 var right_arrow_button = arrow_button_defaults;
+var menu_handcrafted_button = menu_button_defaults;
 
 // Grid geometry
 const Grid_Geometry = struct{
@@ -272,7 +290,7 @@ pub fn main() anyerror!void {
 fn calculate_geometry() void {
     // Grid calculations.
     const gridpos       = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
-    const tile_length = 0.1  * minimum_screen_dim;
+    const tile_length   = 0.1  * minimum_screen_dim;
     const bar_thickness = 0.01 * minimum_screen_dim;
     const total_length  = 5 * bar_thickness + 4 * tile_length;
     grid_geometry.gridpos       = gridpos;
@@ -290,21 +308,28 @@ fn calculate_geometry() void {
             grid_geometry.grid_tile_positions[4 * yi + xi] = tile_pos;
         }
     }
-
-    // Button calculations.
-    const button_width  =  0.9 * tile_length;
-    const button_height =  0.75   * button_width;
+    // Menu button calculations.
+    const menu_button_width   = 0.5 * screen_width;
+    const menu_button_height  = 0.1 * screen_hidth;
+    const menu_button_pos     = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
+    menu_handcrafted_button.pos    = menu_button_pos;
+    menu_handcrafted_button.width  = menu_button_width;
+    menu_handcrafted_button.height = menu_button_height;
+    
+    // Puzzle button calculations.
+    const arrow_button_width  =  0.9  * tile_length;
+    const arrow_button_height =  0.75 * arrow_button_width;
     const left_posx  = grid_geometry.grid_tile_positions[0][0];
     const right_posx = grid_geometry.grid_tile_positions[3][0];
     const left_posy  = 0.5 * (grid_geometry.grid_tile_positions[0][1] - 0.5 * tile_length - bar_thickness);
     const right_posy = left_posy;
     
-    left_arrow_button.width  = button_width;
-    left_arrow_button.height = button_height;
+    left_arrow_button.width  = arrow_button_width;
+    left_arrow_button.height = arrow_button_height;
     left_arrow_button.pos    = .{left_posx, left_posy};
 
-    right_arrow_button.width  = button_width;
-    right_arrow_button.height = button_height;
+    right_arrow_button.width  = arrow_button_width;
+    right_arrow_button.height = arrow_button_height;
     right_arrow_button.pos    = .{right_posx, right_posy};
 }
 
@@ -333,11 +358,13 @@ fn process_input_update_state() void {
 }
 
 fn process_menu_hover_clicks() void {
-    if (mouse_down and ! mouse_down_last_frame) {
+    // Determine whether the menu buttons have been hovered / clicked.
+    button.set_hover_status(mouse_pos, &menu_handcrafted_button);
+    if (mouse_down and ! mouse_down_last_frame and menu_handcrafted_button.hovering) {
         gamemode = .puzzles_handcrafted;
     }
 }
-
+ 
 fn process_puzzle_hover_clicks() void {
     // Determine whether the mouse is hovering on either of the arrow buttons.
     button.set_hover_status(mouse_pos, &left_arrow_button);
@@ -398,13 +425,7 @@ fn render() void {
 // Create an actual main menu.
 
 fn render_menu() void {
-    const pos = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
-    shapes.draw_centered_rect(pos, 100, 100, DEBUG);
-
-    for (0..4) |i| {
-        const ii = @as(f32, @floatFromInt(i));
-        draw_texture(&numeral_textures[i], Vec2{100 + 200 * ii, 100 + 200 * ii}, 200);
-    }
+    button.render_bordered_rect(menu_handcrafted_button);
 }
 
 fn render_puzzle() void {
