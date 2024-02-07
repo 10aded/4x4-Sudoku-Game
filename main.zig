@@ -27,9 +27,10 @@
 
 // TODO LIST:
 // *  Don't forget an UNDO feature!!!
-// ---[current]---> Think about / implement buttons (and just do rects)
 // *  Dragging tiles functionality
 // *  Do README file
+// *  puzzle screen -> menu button
+// *  Redo / Undo buttons
 // *  Main menu
 // *  Create a place for possible tiles to be dragged
 // *  Think about playing game with the keyboard only
@@ -69,7 +70,6 @@ const GameMode =  enum(u8) {
     puzzles_handcrafted,
     puzzles_randomized,
 };
-
 
 const Button = button.Button;
 
@@ -126,7 +126,7 @@ const tile_movable_background_color = DEBUG;
 
 const tile_option_background = LIGHTGRAY;
 
-const background_color = DARKGRAY;
+const def_background_color = DARKGRAY;
 
 // Button Colors
 const menu_button_background_def_color   = LIGHTGRAY;
@@ -404,7 +404,7 @@ fn render() void {
     rl.BeginDrawing();
     defer rl.EndDrawing();
 
-    rl.ClearBackground(rlc(background_color));
+    rl.ClearBackground(rlc(def_background_color));
 
     switch(gamemode) {
         .main_menu => {
@@ -419,12 +419,8 @@ fn render() void {
     }
 }
 
-
-
-// TODO:
-// Create an actual main menu.
-
 fn render_menu() void {
+    // TODO... add text to main menu buttons.
     button.render_bordered_rect(menu_handcrafted_button);
 }
 
@@ -464,22 +460,12 @@ fn render_puzzle() void {
     const background_rect_height = 1 * tile_length +                     2 * tile_option_spacing;
     shapes.draw_centered_rect(background_rect_pos, background_rect_width, background_rect_height, tile_option_background);
 
-    const tile_border_thickness = 0.005 * minimum_screen_dim;
     const left_tile_option_pos  = background_rect_pos - Vec2{1.5 * (tile_length + bar_thickness), 0};
     
     for (0..4) |i| {
-        // TODO: Write a proc which draws an arbitrary tile at an
-        // arbitrary position, use this and rewrite the grid drawing code
-        // to use it.
         const offset = @as(f32, @floatFromInt(i));
-
         const tile_pos = left_tile_option_pos + Vec2{offset * (tile_length + bar_thickness), 0};
-        // @temp!
-        const tile_border_length = tile_length + tile_border_thickness;
-        shapes.draw_centered_rect(tile_pos, tile_border_length, tile_border_length, BLACK);
-        shapes.draw_centered_rect(tile_pos, tile_length, tile_length, DEBUG);
-        // Draw the some of the numeral bitmaps! // @temp
-        draw_texture(&numeral_textures[i], tile_pos, tile_length);
+        draw_tile(@intCast(i + 1), tile_pos);
     } 
 
 }
@@ -520,10 +506,16 @@ fn vec2_to_rl(vec : Vec2) rl.Vector2 {
 fn draw_tile(tile : Tile, pos : Vec2) void {
     // Empty tiles should not get drawn!
     if (tile == 0) return;
+    
     const length = grid_geometry.tile_length;
+    const border_thickness = 10;
+    const border_length = length + border_thickness;
+    
+    const background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
     const texture_index : usize = std.math.absCast(tile) - 1;
-    const tile_texture_ptr = &numeral_textures[texture_index];
-    const tile_background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
-    shapes.draw_centered_rect(pos, length, length, tile_background_color);
-    draw_texture(tile_texture_ptr, pos, length);
+    const texture_ptr = &numeral_textures[texture_index];
+
+    shapes.draw_centered_rect(pos, border_length, border_length, BLACK);
+    shapes.draw_centered_rect(pos, length, length, background_color);
+    draw_texture(texture_ptr, pos, length);
 }
