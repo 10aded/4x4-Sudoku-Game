@@ -26,7 +26,6 @@
 
 
 // TODO LIST:
-// *  Write procedure to validate whether or not a given grid is a valid solution.
 // *  puzzle screen -> menu button
 // *  Do README file
 // *  Don't forget an UNDO feature!!!
@@ -35,7 +34,6 @@
 // *  Main menu
 // *  Create a place for possible tiles to be dragged
 // *  Think about playing game with the keyboard only
-
 // ** Randomized puzzles (of various degrees of difficulty)
 
 const std    = @import("std");
@@ -43,6 +41,7 @@ const qoi    = @import("qoi.zig");
 const parser = @import("level-parser.zig");
 const shapes = @import("shapes.zig");
 const button = @import("buttons.zig");
+const logic  = @import("grid-logic.zig");
 
 const rl     = @cImport(@cInclude("raylib.h"));
 
@@ -393,54 +392,9 @@ fn process_puzzle_hover_clicks() void {
 
 fn update_current_grid_solved() void {
     const grid = current_handcrafted_levels[current_handcrafted_level_index];
-    // Recall that for positive n, the tiles n and -n represent
-    // fixed and draggable tiles with the number n respectively.
-    // Check to see whether or not the current grid represents a solved puzzle.
 
-    // First check that the grid does not have an empty tile.
-    var grid_full = true;
-    for (grid) |tile| {
-        grid_full = grid_full and tile != 0;
-    }
-
-    if (! grid_full) {
-        handcrafted_levels_solved_status[current_handcrafted_level_index] = false;
-        return;
-    }
-
-    // I.e. check to see that every row, column and 2x2 quadrant contains
-    // each of {1,2,3,4} exactly once.
-    var cols_unique  = true;
-    var rows_unique  = true;
-    var quads_unique = true;
-    // Rows first.
-    for (0..4) |i| {
-        const t1 = std.math.absCast(grid[4*i + 0]);
-        const t2 = std.math.absCast(grid[4*i + 1]);
-        const t3 = std.math.absCast(grid[4*i + 2]);
-        const t4 = std.math.absCast(grid[4*i + 3]);
-        const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
-        rows_unique = rows_unique and unique;
-    }
-    // Cols next.
-    for (0..4) |j| {
-        const t1 = std.math.absCast(grid[0  + j]);
-        const t2 = std.math.absCast(grid[4  + j]);
-        const t3 = std.math.absCast(grid[8  + j]);
-        const t4 = std.math.absCast(grid[12 + j]);
-        const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
-        cols_unique = cols_unique and unique;
-    }
-    // Quads.
-    for ([4]usize{0,2,8,10}) |k| {
-        const t1 = std.math.absCast(grid[k]);
-        const t2 = std.math.absCast(grid[k + 1]);
-        const t3 = std.math.absCast(grid[k + 4]);
-        const t4 = std.math.absCast(grid[k + 5]);
-        const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
-        quads_unique = quads_unique and unique;
-    }
-    handcrafted_levels_solved_status[current_handcrafted_level_index] = rows_unique and cols_unique and quads_unique;
+    const grid_solved = logic.is_grid_solved(grid);
+    handcrafted_levels_solved_status[current_handcrafted_level_index] = grid_solved;
 }
 
 fn render() void {
