@@ -27,10 +27,10 @@
 
 // TODO LIST:
 // *  Write procedure to validate whether or not a given grid is a valid solution.
+// *  puzzle screen -> menu button
+// *  Do README file
 // *  Don't forget an UNDO feature!!!
 // *  Dragging tiles functionality
-// *  Do README file
-// *  puzzle screen -> menu button
 // *  Redo / Undo buttons
 // *  Main menu
 // *  Create a place for possible tiles to be dragged
@@ -58,6 +58,7 @@ const Tile = i8;
 
 const Grid = [16] Tile;
 
+// The level data has type [NUMBER_OF_LEVELS] Grid.
 const handcrafted_levels           = parser.parse_levels();
 const NUMBER_OF_HANDCRAFTED_LEVELS = handcrafted_levels.len;
 
@@ -117,6 +118,7 @@ var gamemode : GameMode = undefined;
 
 var   current_handcrafted_levels       = handcrafted_levels;
 var   current_handcrafted_level_index : usize = 0;
+var   handcrafted_levels_solved_status = [1]bool{false} ** handcrafted_levels.len;
 
 // Colors
 const grid_fill_color = LIGHTGRAY;
@@ -214,18 +216,9 @@ pub fn main() anyerror!void {
     rl.SetWindowState(rl.FLAG_WINDOW_RESIZABLE);
     rl.SetTargetFPS(144);
 
-    // Import font from embedded file.
-    //    const merriweather_font = rl.LoadFontFromMemory(".ttf", merriweather_ttf, merriweather_ttf.len, 108, null, 95);
-
-    // button_option_font = merriweather_font;
-    // attribution_font   = merriweather_font;
-    
     //    const random = prng.random();
 
     gamemode = GameMode.main_menu;
-
-    // @debug
-
 
     // Load at runtime the bitmap, and convert to an array of bools.
     qoi.qoi_to_pixels(bitmap, bitmap_width * bitmap_height, &bitmap_pixels);
@@ -243,13 +236,7 @@ pub fn main() anyerror!void {
 
     for (0..4) |i| {
         numeral_images[i] = rl.GenImageColor(20, 20, rlc(TRANSPARENT));
-        //        numeral_images[i] = rl.GenImageColor(20, 20, DEBUG); // @debug
     }
-
-    // TODO... transfer bitmap info onto testi using ImageDrawRectangle;    
-    //    var testi : rl.Image = rl.GenImageColor(5, 5, DEBUG);
-
-    //    rl.ImageDrawRectangle(&testi, 1, 1, 2, 2, YELLOW);
 
     // Initialize the textures for '1', '2', '3', '4'.
     // Since the images have a width of 20, but the numerals have a width
@@ -371,6 +358,7 @@ fn process_input_update_state() void {
             // TODO:
             // Detection logic for the buttons.
             process_puzzle_hover_clicks();
+            update_current_grid_solved();
         },
         .puzzles_randomized => unreachable,
     }
@@ -400,24 +388,60 @@ fn process_puzzle_hover_clicks() void {
         if (current_handcrafted_level_index != NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
             current_handcrafted_level_index += 1;
         }
-    }    
+    }
 }
-// change from the main menu to the puzzles when the left mouse is clicked.
-// if (mouse_down and ! mouse_down_last_frame) {
-//     gamemode = switch (gamemode) {
-//         .main_menu           => .puzzles_handcrafted,
-//         .puzzles_handcrafted => block: {
-//             if (current_handcrafted_level_index == NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
-//                 current_handcrafted_level_index = 0;
-//                 break :block .main_menu;
-//             } else {
-//                 current_handcrafted_level_index += 1;
-//                 break :block .puzzles_handcrafted;
-//             }
-//         },
-//         .puzzles_randomized  => .main_menu,
-//     };
-// }
+
+fn update_current_grid_solved() void {
+    const grid = current_handcrafted_levels[current_handcrafted_level_index];
+    // Recall that for positive n, the tiles n and -n represent
+    // fixed and draggable tiles with the number n respectively.
+    // Check to see whether or not the current grid represents a solved puzzle.
+
+    // First check that the grid does not have an empty tile.
+    var grid_full = true;
+    for (grid) |tile| {
+        grid_full = grid_full and tile != 0;
+    }
+
+    if (! grid_full) {
+        handcrafted_levels_solved_status[current_handcrafted_level_index] = false;
+        return;
+    }
+
+    // I.e. check to see that every row, column and 2x2 quadrant contains
+    // each of {1,2,3,4} exactly once.
+    var cols_unique  = true;
+    var rows_unique  = true;
+    var quads_unique = true;
+    // Rows first.
+    for (0..4) |i| {
+        const t1 = std.math.absCast(grid[4*i + 0]);
+        const t2 = std.math.absCast(grid[4*i + 1]);
+        const t3 = std.math.absCast(grid[4*i + 2]);
+        const t4 = std.math.absCast(grid[4*i + 3]);
+        const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
+        rows_unique = rows_unique and unique;
+    }
+    // Cols next.
+    for (0..4) |j| {
+        const t1 = std.math.absCast(grid[0  + j]);
+        const t2 = std.math.absCast(grid[4  + j]);
+        const t3 = std.math.absCast(grid[8  + j]);
+        const t4 = std.math.absCast(grid[12 + j]);
+        const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
+        cols_unique = cols_unique and unique;
+    }
+    // Quads.
+    for ([4]usize{0,2,8,10}) |k| {
+        const t1 = std.math.absCast(grid[k]);
+        const t2 = std.math.absCast(grid[k + 1]);
+        const t3 = std.math.absCast(grid[k + 4]);
+        const t4 = std.math.absCast(grid[k + 5]);
+        const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
+        quads_unique = quads_unique and unique;
+    }
+    handcrafted_levels_solved_status[current_handcrafted_level_index] = rows_unique and cols_unique and quads_unique;
+}
 
 fn render() void {
     rl.BeginDrawing();
@@ -465,16 +489,17 @@ fn render_puzzle() void {
         draw_tile(tile, tile_pos);
     }
 
-    // Draw vertical grid bars.
+    // Draw grid bars.
+    // @temp !!!
+    const solved = handcrafted_levels_solved_status[current_handcrafted_level_index];
+    const bar_color = if (solved) YELLOW else grid_bar_color;
     for (0..5) |i| {
         const offset = @as(f32, @floatFromInt(i)) - 2;
-        shapes.draw_centered_rect(gridpos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
-        shapes.draw_centered_rect(gridpos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
+        shapes.draw_centered_rect(gridpos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, bar_color);
+        shapes.draw_centered_rect(gridpos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, bar_color);
     }
 
     // Draw tile options.
-    // TODO:
-    // set this in calculate...() using the tile_options_geometry struct.
     const background_rect_pos = tile_options_geometry.background_rect_pos;
     const tile_option_spacing = 0.015 * minimum_screen_dim;
     const background_rect_width  = 4 * tile_length + 3 * bar_thickness + 2 * tile_option_spacing;
