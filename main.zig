@@ -131,15 +131,20 @@ const tile_option_background = LIGHTGRAY;
 const def_background_color = DARKGRAY;
 
 // Button Colors
-const menu_button_background_def_color   = LIGHTGRAY;
-const menu_button_detail_def_color       = BLACK;
-const menu_button_background_hover_color = YELLOW;
-const menu_button_detail_hover_color     = BLACK;
+const menu_button_background_def_color        = LIGHTGRAY;
+const menu_button_detail_def_color            = BLACK;
+const menu_button_background_hover_color      = YELLOW;
+const menu_button_detail_hover_color          = BLACK;
 
-const arrow_button_background_def_color   = LIGHTGRAY;
-const arrow_button_detail_def_color       = DARKGRAY;
-const arrow_button_background_hover_color = LIGHTGRAY;
-const arrow_button_detail_hover_color     = YELLOW;
+const arrow_button_background_def_color       = LIGHTGRAY;
+const arrow_button_detail_def_color           = DARKGRAY;
+const arrow_button_background_hover_color     = LIGHTGRAY;
+const arrow_button_detail_hover_color         = YELLOW;
+
+const menu_return_button_background_def_color = LIGHTGRAY;
+const menu_return_button_detail_def_color     = DARKGRAY;
+const menu_return_button_background_hov_color = LIGHTGRAY;
+const menu_return_button_detail_hov_color     = YELLOW;
 
 var numeral_textures : [4] rl.Texture2D = undefined;
 
@@ -177,10 +182,22 @@ const arrow_button_defaults  = button.Button{
 	.color2_hov = arrow_button_detail_hover_color,
 };
 
+const menu_return_button_defaults = button.Button{
+    .hovering   = false,
+    .width      = 0,
+    .height     = 0,
+    .pos        = .{0,0},
+    .color1_def = menu_return_button_background_def_color,
+    .color2_def = menu_return_button_detail_def_color,
+    .color1_hov = menu_return_button_background_hov_color,
+    .color2_hov = menu_return_button_detail_hov_color,
+};
+
 // The actual buttons...
-var left_arrow_button  = arrow_button_defaults;
-var right_arrow_button = arrow_button_defaults;
+var left_arrow_button       = arrow_button_defaults;
+var right_arrow_button      = arrow_button_defaults;
 var menu_handcrafted_button = menu_button_defaults;
+var menu_return_button      = menu_return_button_defaults;
 
 // Grid geometry
 const Grid_Geometry = struct{
@@ -217,7 +234,7 @@ pub fn main() anyerror!void {
 
     //    const random = prng.random();
 
-    gamemode = GameMode.main_menu;
+    gamemode = GameMode.puzzles_handcrafted;
 
     // Load at runtime the bitmap, and convert to an array of bools.
     qoi.qoi_to_pixels(bitmap, bitmap_width * bitmap_height, &bitmap_pixels);
@@ -312,7 +329,7 @@ fn calculate_geometry() void {
         const tile_pos = left_tile_option_pos + Vec2{offset * (tile_length + bar_thickness), 0};
         tile_options_geometry.tile_positions[i] = tile_pos;
     }
-    
+
     // Menu button calculations.
     const menu_button_width   = 0.5 * screen_width;
     const menu_button_height  = 0.1 * screen_hidth;
@@ -320,13 +337,19 @@ fn calculate_geometry() void {
     menu_handcrafted_button.pos    = menu_button_pos;
     menu_handcrafted_button.width  = menu_button_width;
     menu_handcrafted_button.height = menu_button_height;
+
+
+    // Puzzle-solving screen buttons. 
+    // Arrow button calculations.
+    const pbutton_width  = 0.9  * tile_length;
+    const pbutton_height = 0.75 * pbutton_width;
+    const pbutton_posy   = pbutton_height;
     
-    // Puzzle button calculations.
-    const arrow_button_width  =  0.9  * tile_length;
-    const arrow_button_height =  0.75 * arrow_button_width;
+    const arrow_button_width  =  pbutton_width;
+    const arrow_button_height =  pbutton_height;
     const left_posx  = grid_geometry.grid_tile_positions[0][0];
     const right_posx = grid_geometry.grid_tile_positions[3][0];
-    const left_posy  = 0.5 * (grid_geometry.grid_tile_positions[0][1] - 0.5 * tile_length - bar_thickness);
+    const left_posy  = pbutton_posy;
     const right_posy = left_posy;
     
     left_arrow_button.width  = arrow_button_width;
@@ -336,6 +359,15 @@ fn calculate_geometry() void {
     right_arrow_button.width  = arrow_button_width;
     right_arrow_button.height = arrow_button_height;
     right_arrow_button.pos    = .{right_posx, right_posy};
+
+    // Menu return button calculations.
+    const menu_return_button_width  = pbutton_width;
+    const menu_return_button_height = pbutton_height;
+    const menu_return_posx  = 0.5 * (menu_return_button_height + menu_return_button_width);
+    const menu_return_posy  = pbutton_posy;
+    menu_return_button.pos   = Vec2{menu_return_posx, menu_return_posy};
+    menu_return_button.width = arrow_button_width;
+    menu_return_button.height = arrow_button_height;
 }
 
 fn process_input_update_state() void {
@@ -353,9 +385,6 @@ fn process_input_update_state() void {
             process_menu_hover_clicks();
         },
         .puzzles_handcrafted => {
-            //..
-            // TODO:
-            // Detection logic for the buttons.
             process_puzzle_hover_clicks();
             update_current_grid_solved();
         },
@@ -372,17 +401,23 @@ fn process_menu_hover_clicks() void {
 }
  
 fn process_puzzle_hover_clicks() void {
-    // Determine whether the mouse is hovering on either of the arrow buttons.
+    // Determine whether the mouse is hovering on either of the pbuttons.
+    button.set_hover_status(mouse_pos, &menu_return_button);
     button.set_hover_status(mouse_pos, &left_arrow_button);
     button.set_hover_status(mouse_pos, &right_arrow_button);
 
-    // Left arrow click moves to previous level.
+    // Left click on menu return button moves to menu.
+    if (mouse_down and ! mouse_down_last_frame and menu_return_button.hovering) {
+        gamemode = .main_menu;
+    }
+    
+    // Left click on left arrow moves to previous level.
     if (mouse_down and ! mouse_down_last_frame and left_arrow_button.hovering) {
         if (current_handcrafted_level_index != 0) {
             current_handcrafted_level_index -= 1;
         }
     }
-    // Right arrow click moves to next level.
+    // Left click on right arrow move to next level.
     if (mouse_down and ! mouse_down_last_frame and right_arrow_button.hovering) {
         if (current_handcrafted_level_index != NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
             current_handcrafted_level_index += 1;
@@ -432,6 +467,9 @@ fn render_puzzle() void {
 
     button.render_arrow(left_arrow_button, true);
     button.render_arrow(right_arrow_button, false);
+
+    // Draw menu button.
+    button.render_menu_button(menu_return_button);
     
     // Draw grid background.
     const background_length = total_length - bar_thickness;

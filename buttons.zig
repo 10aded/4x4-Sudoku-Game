@@ -30,6 +30,24 @@ pub fn render_arrow(b : Button, arrow_is_pointing_left : bool) void {
     shapes.draw_triangle(p1, p2, p3, detail_color);
 }
 
+pub fn render_menu_button(b : Button) void {
+    const square_length       = 0.7 * b.height;
+    const subrectangle_height = 0.2 * square_length;
+    const rect_pos = [3] Vec2 {
+        b.pos + Vec2{0,  2 * subrectangle_height},
+        b.pos + Vec2{0,  0 * subrectangle_height},
+        b.pos + Vec2{0, -2 * subrectangle_height},
+    };
+    const background_color = if (b.hovering) b.color1_hov else b.color1_def;
+    const detail_color     = if (b.hovering) b.color2_hov else b.color2_def;
+    // Background first.    
+    shapes.draw_centered_rect(b.pos, b.width, b.height, background_color);
+    // Draw the three rectangles.
+    for (rect_pos) |pos| {
+        shapes.draw_centered_rect(pos, square_length, subrectangle_height, detail_color);
+    }
+}
+
 pub fn render_bordered_rect(b : Button) void {
     const background_color = if (b.hovering) b.color1_hov else b.color1_def;
     const detail_color     = if (b.hovering) b.color2_hov else b.color2_def;
