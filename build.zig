@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) void {
 	b.installArtifact(exe);
 
     // TODO: Copy / modify the needed build code from the raylib build.zig file.
-    var raylib = raySdk.addRaylib(b, target, optimize, .{});
+    var raylib = raySdk.addRaylib(b, target, optimize, false);
     
 
 
