@@ -1,5 +1,11 @@
 const std    = @import("std");
+
+
+// TODO:
+// Remove the line below.
 const raySdk = @import("Raylib5/src/build.zig");
+
+
 // If imports in higher directories fail, try:
 // exe.main_mod_path = ".";
 
@@ -18,7 +24,12 @@ pub fn build(b: *std.Build) void {
 
 	b.installArtifact(exe);
 
-	var raylib = raySdk.addRaylib(b, target, optimize, .{});
+    // TODO: Copy / modify the needed build code from the raylib build.zig file.
+    var raylib = raySdk.addRaylib(b, target, optimize, .{});
+    
+
+
+    
 	exe.addIncludePath(.{ .path = "Raylib5/src" });
 	exe.linkLibrary(raylib);
 

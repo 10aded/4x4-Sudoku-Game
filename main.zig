@@ -26,7 +26,7 @@
 
 
 // TODO LIST:
-// *  puzzle screen -> menu button
+// *  Simplify the build system
 // *  Do README file
 // *  Don't forget an UNDO feature!!!
 // *  Dragging tiles functionality
