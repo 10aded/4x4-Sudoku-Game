@@ -8,7 +8,7 @@ This is a simple puzzle game containing a collection of 4 x 4 Sudoku puzzles. Su
 
 ## Gameplay
 
-All that is needed to solve the puzzles of the game is a mouse. Levels do not save on exit of the game.
+Use the mouse to drag tiles onto the grid so that each row, column, and 2 x 2 quadrant contains the numbers 1,2,3,4 in some order. Levels do not save on exit of the game.
 
 ## Build Instructions
 
@@ -26,7 +26,7 @@ The project was built with the Zig 0.11.0 compiler on Windows 11, available from
 
 ## Dependencies
 
-The project is written in Zig and uses the raylib library, specifically v5.0 (commit number ae50bfa). We included the necessary source files from raylib directly in our project (under the raylib directory), but deleted unnecessary parts of the library (like its numerous examples). We also combined the `build.zig` file there into the build file for the project, simplifying it for Zig compiler 0.11.0.
+The project is written in Zig and uses the raylib library, [specifically v5.0](https://github.com/raysan5/raylib/releases/tag/5.0) (commit number ae50bfa). We included the necessary source files from raylib directly in our project (under the `Raylib5` directory), but deleted unnecessary parts of the library (like its numerous examples). We also combined the `build.zig` file there into the build file for the project, simplifying it for Zig compiler 0.11.0.
 
 Raylib is created by Ramon Santamaria (GitHub handle [@raysan5](https://github.com/raysan5)) and is available on GitHub [here](https://github.com/raysan5/raylib). See the link above for Raylib's full license / copywrite details.
 
