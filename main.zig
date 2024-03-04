@@ -49,9 +49,9 @@ const Color = [4] u8;
 const Pixel = [4] u8;
 
 // Grid Tile Possiblities
-// Note: 0 denotes an empty tile
-// Positive number represents a fixed tile
-// Negative number represents a selected tile.
+// Note: A zero    (0) denotes an empty tile
+// Positive number (+) denotes a fixed tile
+// Negative number (-) denotes a selected tile.
 const Tile = i8;
 
 const Grid = [16] Tile;
@@ -127,7 +127,7 @@ const grid_fill_color = LIGHTGRAY;
 const grid_bar_color  = BLACK;
 
 const tile_fixed_background_color   = grid_fill_color;
-const tile_movable_background_color = DEBUG;
+const tile_movable_background_color = MIDGRAY;
 
 const tile_option_background = LIGHTGRAY;
 
@@ -404,20 +404,31 @@ fn process_menu_hover_clicks() void {
 fn process_puzzle_hover_clicks() void {
     // @maybe Add in animation when the mouse is over a tile that can be moved.
     // Determine whether the mouse is over a tile option.
-    const tl = grid_geometry.tile_length;
-
+//    const tl = grid_geometry.tile_length;
+    const current_grid = &current_handcrafted_levels[current_handcrafted_level_index];
+    
     // Determine whether a tile option has been clicked.
     if (mouse_down and ! mouse_down_last_frame) {
         for (tile_options_geometry.tile_positions, 0..) |pos, i| {
-            if (@fabs(pos[0] - mouse_pos[0]) < 0.5 * tl and @fabs(pos[1] - mouse_pos[1]) < 0.5 * tl) {
+            if (is_tile_hovered(mouse_pos, pos)) {
                 tile_dragging_index = i + 1;
                 mouse_to_tile_dragging_vec = pos - mouse_pos;
             }
         }
     }
 
+    // If click released, do dragged tile logic.
     if (! mouse_down and mouse_down_last_frame) {
         defer tile_dragging_index = 0;
+        // Determine if the dragged tile pos is in grid.
+        const dragged_tile_pos = mouse_pos + mouse_to_tile_dragging_vec;
+        for (grid_geometry.grid_tile_positions, 0..) |tpos, i| {
+            if (is_tile_hovered(dragged_tile_pos, tpos)) {
+                // Check if the dragged tile can be placed on the grid.
+                if (current_grid[i] > 0) break;
+                current_grid[i] = -1 * @as(i8, @intCast(tile_dragging_index));
+            }
+        }
     }
     
     // Determine whether the mouse is hovering on either of the pbuttons.
@@ -518,12 +529,12 @@ fn render_puzzle() void {
     shapes.draw_centered_rect(background_rect_pos, background_rect_width, background_rect_height, tile_option_background);
 
     for (0..4) |i| {
-        draw_tile(@intCast(i + 1), tile_options_geometry.tile_positions[i]);
+        draw_tile(-1 * @as(i8, @intCast(i + 1)), tile_options_geometry.tile_positions[i]);
     } 
 
     // Draw a dragging tile (if applicable).
     if (tile_dragging_index != 0) {
-        draw_tile(@intCast(tile_dragging_index), mouse_to_tile_dragging_vec + mouse_pos);
+        draw_tile(-1 * @as(i8, @intCast(tile_dragging_index)), mouse_to_tile_dragging_vec + mouse_pos);
     }
 }
 
@@ -575,4 +586,9 @@ fn draw_tile(tile : Tile, pos : Vec2) void {
     shapes.draw_centered_rect(pos, border_length, border_length, BLACK);
     shapes.draw_centered_rect(pos, length, length, background_color);
     draw_texture(texture_ptr, pos, length);
+}
+
+fn is_tile_hovered(cursor_pos : Vec2, tile_pos : Vec2) bool {
+    const tl = grid_geometry.tile_length;
+    return @fabs(cursor_pos[0] - tile_pos[0]) < 0.5 * tl and @fabs(cursor_pos[1] - tile_pos[1]) < 0.5 * tl;
 }

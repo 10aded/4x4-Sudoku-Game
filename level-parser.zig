@@ -6,7 +6,7 @@ const dprint  = std.debug.print;
 const Tile = i8;
 const Grid = [16] Tile;
 
-const NUMBER_OF_LEVELS = 4;
+const NUMBER_OF_LEVELS = 5;
 const LEVEL_FILENAME   = "levels.txt";
 
 const level_string_data = @embedFile(LEVEL_FILENAME);
