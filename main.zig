@@ -26,9 +26,9 @@
 
 
 // TODO LIST:
+// *  Dragging tiles functionality
 // *  Do README file
 // *  Don't forget an UNDO feature!!!
-// *  Dragging tiles functionality
 // *  Redo / Undo buttons
 // *  Main menu
 // *  Create a place for possible tiles to be dragged
@@ -117,6 +117,10 @@ var gamemode : GameMode = undefined;
 var   current_handcrafted_levels       = handcrafted_levels;
 var   current_handcrafted_level_index : usize = 0;
 var   handcrafted_levels_solved_status = [1]bool{false} ** handcrafted_levels.len;
+
+// Tile manipulation
+var tile_dragging_index : usize = 0;
+var mouse_to_tile_dragging_vec  = Vec2{0,0};
 
 // Colors
 const grid_fill_color = LIGHTGRAY;
@@ -208,8 +212,6 @@ const Grid_Geometry = struct{
 };
 
 // Tile options geometry
-// TODO: Add in the other measurements needed to draw the
-// tile options / use this info in render_puzzle().
 const Tile_Options_Geometry = struct{
     background_rect_pos    : Vec2,
     tile_positions : [4] Vec2,
@@ -400,6 +402,24 @@ fn process_menu_hover_clicks() void {
 }
  
 fn process_puzzle_hover_clicks() void {
+    // @maybe Add in animation when the mouse is over a tile that can be moved.
+    // Determine whether the mouse is over a tile option.
+    const tl = grid_geometry.tile_length;
+
+    // Determine whether a tile option has been clicked.
+    if (mouse_down and ! mouse_down_last_frame) {
+        for (tile_options_geometry.tile_positions, 0..) |pos, i| {
+            if (@fabs(pos[0] - mouse_pos[0]) < 0.5 * tl and @fabs(pos[1] - mouse_pos[1]) < 0.5 * tl) {
+                tile_dragging_index = i + 1;
+                mouse_to_tile_dragging_vec = pos - mouse_pos;
+            }
+        }
+    }
+
+    if (! mouse_down and mouse_down_last_frame) {
+        defer tile_dragging_index = 0;
+    }
+    
     // Determine whether the mouse is hovering on either of the pbuttons.
     button.set_hover_status(mouse_pos, &menu_return_button);
     button.set_hover_status(mouse_pos, &left_arrow_button);
@@ -501,6 +521,10 @@ fn render_puzzle() void {
         draw_tile(@intCast(i + 1), tile_options_geometry.tile_positions[i]);
     } 
 
+    // Draw a dragging tile (if applicable).
+    if (tile_dragging_index != 0) {
+        draw_tile(@intCast(tile_dragging_index), mouse_to_tile_dragging_vec + mouse_pos);
+    }
 }
 
 fn rlc(color : Color) rl.Color {
