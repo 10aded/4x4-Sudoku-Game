@@ -27,6 +27,8 @@
 
 // TODO LIST:
 // *  Dragging tiles functionality
+// *  Make border size of tiles on the grid / option tiles
+//    have a consistent border width.
 // *  Do README file
 // *  Don't forget an UNDO feature!!!
 // *  Redo / Undo buttons
@@ -405,7 +407,8 @@ fn process_puzzle_hover_clicks() void {
     // @maybe Add in animation when the mouse is over a tile that can be moved.
     // Determine whether the mouse is over a tile option.
 //    const tl = grid_geometry.tile_length;
-    const current_grid = &current_handcrafted_levels[current_handcrafted_level_index];
+    const grid           = &current_handcrafted_levels[current_handcrafted_level_index];
+    const grid_positions = &grid_geometry.grid_tile_positions;
     
     // Determine whether a tile option has been clicked.
     if (mouse_down and ! mouse_down_last_frame) {
@@ -416,20 +419,36 @@ fn process_puzzle_hover_clicks() void {
             }
         }
     }
-
-    // If click released, do dragged tile logic.
+    // Determine whether a clickable grid tile has been clicked.
+    if (mouse_down and ! mouse_down_last_frame) {
+        for (grid_positions, 0..) |tpos, i| {
+            if (is_tile_hovered(mouse_pos, tpos) and grid[i] < 0) {
+                const tile_type = grid[i];
+                // A moveable tile has been clicked.
+                grid[i] = 0;
+                tile_dragging_index = @intCast(-tile_type);
+                mouse_to_tile_dragging_vec = tpos - mouse_pos;
+                break;
+            }
+        }
+    }
+    
+    // if click released, do dragged tile logic.
     if (! mouse_down and mouse_down_last_frame) {
         defer tile_dragging_index = 0;
         // Determine if the dragged tile pos is in grid.
         const dragged_tile_pos = mouse_pos + mouse_to_tile_dragging_vec;
-        for (grid_geometry.grid_tile_positions, 0..) |tpos, i| {
+        for (grid_positions, 0..) |tpos, i| {
             if (is_tile_hovered(dragged_tile_pos, tpos)) {
                 // Check if the dragged tile can be placed on the grid.
-                if (current_grid[i] > 0) break;
-                current_grid[i] = -1 * @as(i8, @intCast(tile_dragging_index));
+                if (grid[i] > 0) break;
+                grid[i] = -1 * @as(i8, @intCast(tile_dragging_index));
             }
         }
     }
+
+
+    
     
     // Determine whether the mouse is hovering on either of the pbuttons.
     button.set_hover_status(mouse_pos, &menu_return_button);
