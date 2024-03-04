@@ -26,10 +26,9 @@
 
 
 // TODO LIST:
-// *  Dragging tiles functionality
 // *  Make border size of tiles on the grid / option tiles
 //    have a consistent border width.
-// *  Do README file
+// *  Make right clicking cycle through tile options.
 // *  Don't forget an UNDO feature!!!
 // *  Redo / Undo buttons
 // *  Main menu
