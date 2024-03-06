@@ -26,8 +26,8 @@
 
 
 // TODO LIST:
-// *  Draw head of arrow and add gap.
 // *  Main menu, add a "mouse instructions"
+// *  Create some levels!!!
 
 const std    = @import("std");
 const qoi    = @import("qoi.zig");
@@ -504,9 +504,7 @@ fn process_puzzle_hover_clicks() void {
 
     // Left click on the reset button clears the grid of any movable tiles.
     if (left_mouse_down and ! left_mouse_down_last_frame and reset_button.hovering) {
-        for (grid, 0..) |tile, i| {
-            grid[i] = tile * @intFromBool(tile >= 0);
-        }
+        current_handcrafted_levels[current_handcrafted_level_index] = handcrafted_levels[current_handcrafted_level_index];
     }
 }
 

@@ -51,17 +51,26 @@ pub fn render_menu_button(b : Button) void {
 }
 
 pub fn render_reset_button(b : Button) void {
-    const outer_radius = 0.50 * 0.75 * b.height;
-    const inner_radius = 0.75 * outer_radius;
+    const annulus_radius    = 0.70 * 0.5 * b.height;
+    const annulus_thickness = 0.05       * b.height;
+    const outer_radius = annulus_radius + annulus_thickness;
+    const inner_radius = annulus_radius - annulus_thickness;
+    const head_thickness = 0.20 * b.height;
 
     const background_color = if (b.hovering) b.color1_hov else b.color1_def;
     const detail_color     = if (b.hovering) b.color2_hov else b.color2_def;
 
+    // Draw a portion of an annulus.
     shapes.draw_centered_rect(b.pos, b.width, b.height, background_color);
     shapes.draw_centered_circle(b.pos, outer_radius, detail_color);
     shapes.draw_centered_circle(b.pos, inner_radius, background_color);
+    shapes.draw_centered_rect(b.pos + Vec2{0.25 * b.width, -0.25 * b.height}, 0.5 * b.width, 0.5 * b.height, background_color);
 
-    // TODO... Draw head of arrow and add gap.
+    // Draw the arrowhead.
+    const p1 = b.pos + Vec2{0.25 * b.width, -0.3 * b.height};
+    const p2 = b.pos + Vec2{annulus_radius - head_thickness, 0};
+    const p3 = b.pos + Vec2{annulus_radius + head_thickness, 0};
+    shapes.draw_triangle(p1, p2, p3, detail_color);
 }
 
 pub fn render_bordered_rect(b : Button) void {
