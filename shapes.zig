@@ -26,3 +26,9 @@ pub fn draw_triangle(p1 : Vec2, p2 : Vec2, p3 : Vec2, color : Color) void {
 fn rlc(color : Color) rl.Color {
     return rl.Color{.r = color[0], .g = color[1], .b = color[2], .a = color[3]};
 }
+
+pub fn draw_centered_circle( pos : Vec2, radius : f32, color : Color) void {
+    const posx : c_int = @intFromFloat(pos[0]);
+    const posy : c_int = @intFromFloat(pos[1]);
+    rl.DrawCircle(posx, posy, radius, rl.Color{.r = color[0], .g = color[1], .b = color[2], .a = color[3]});
+}

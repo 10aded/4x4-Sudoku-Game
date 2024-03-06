@@ -26,7 +26,7 @@
 
 
 // TODO LIST:
-// *  Don't forget an RESET button.
+// *  Draw head of arrow and add gap.
 // *  Main menu, add a "mouse instructions"
 
 const std    = @import("std");
@@ -478,13 +478,11 @@ fn process_puzzle_hover_clicks() void {
         }
     }
 
-
-    
-    
     // Determine whether the mouse is hovering on either of the pbuttons.
     button.set_hover_status(mouse_pos, &menu_return_button);
     button.set_hover_status(mouse_pos, &left_arrow_button);
     button.set_hover_status(mouse_pos, &right_arrow_button);
+    button.set_hover_status(mouse_pos, &reset_button);
 
     // Left click on menu return button moves to menu.
     if (left_mouse_down and ! left_mouse_down_last_frame and menu_return_button.hovering) {
@@ -501,6 +499,13 @@ fn process_puzzle_hover_clicks() void {
     if (left_mouse_down and ! left_mouse_down_last_frame and right_arrow_button.hovering) {
         if (current_handcrafted_level_index != NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
             current_handcrafted_level_index += 1;
+        }
+    }
+
+    // Left click on the reset button clears the grid of any movable tiles.
+    if (left_mouse_down and ! left_mouse_down_last_frame and reset_button.hovering) {
+        for (grid, 0..) |tile, i| {
+            grid[i] = tile * @intFromBool(tile >= 0);
         }
     }
 }
@@ -587,12 +592,10 @@ fn render_puzzle() void {
         draw_tile(-1 * @as(i8, @intCast(tile_dragging_index)), mouse_to_tile_dragging_vec + mouse_pos);
     }
 
-    // @debug
     // Draw FPS.
     const fps_posx : c_int = @intFromFloat(screen_width - 100);
     const fps_posy : c_int = @intFromFloat(screen_hidth - 100);
     rl.DrawFPS(fps_posx, fps_posy);
-    
 }
 
 fn rlc(color : Color) rl.Color {

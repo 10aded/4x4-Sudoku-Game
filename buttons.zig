@@ -51,7 +51,17 @@ pub fn render_menu_button(b : Button) void {
 }
 
 pub fn render_reset_button(b : Button) void {
-    shapes.draw_centered_rect(b.pos, b.width, b.height, DEBUG);
+    const outer_radius = 0.50 * 0.75 * b.height;
+    const inner_radius = 0.75 * outer_radius;
+
+    const background_color = if (b.hovering) b.color1_hov else b.color1_def;
+    const detail_color     = if (b.hovering) b.color2_hov else b.color2_def;
+
+    shapes.draw_centered_rect(b.pos, b.width, b.height, background_color);
+    shapes.draw_centered_circle(b.pos, outer_radius, detail_color);
+    shapes.draw_centered_circle(b.pos, inner_radius, background_color);
+
+    // TODO... Draw head of arrow and add gap.
 }
 
 pub fn render_bordered_rect(b : Button) void {
