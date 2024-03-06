@@ -26,15 +26,9 @@
 
 
 // TODO LIST:
-// *  Make border size of tiles on the grid / option tiles
-//    have a consistent border width.
 // *  Make right clicking cycle through tile options.
-// *  Don't forget an UNDO feature!!!
-// *  Redo / Undo buttons
+// *  Don't forget an RESET button.
 // *  Main menu
-// *  Create a place for possible tiles to be dragged
-// *  Think about playing game with the keyboard only
-// ** Randomized puzzles (of various degrees of difficulty)
 
 const std    = @import("std");
 const qoi    = @import("qoi.zig");
@@ -513,24 +507,17 @@ fn render_puzzle() void {
     const total_length        = grid_geometry.total_length;
     const grid_tile_positions = grid_geometry.grid_tile_positions;
 
+    // Draw menu and arrow buttons.
+    button.render_menu_button(menu_return_button);
     button.render_arrow(left_arrow_button, true);
     button.render_arrow(right_arrow_button, false);
-
-    // Draw menu button.
-    button.render_menu_button(menu_return_button);
     
     // Draw grid background.
     const background_length = total_length - bar_thickness;
     shapes.draw_centered_rect(gridpos, background_length, background_length, grid_fill_color);
 
-    // Draw the (non-empty) tiles in the grid.
-    for (grid, 0..) |tile, ti| {
-        const tile_pos = grid_tile_positions[ti];
-        draw_tile(tile, tile_pos);
-    }
-
     // Draw grid bars.
-    // @temp !!!
+    // @temp, presumably bc this is how we're currently indicating  that something is solved !
     const solved = handcrafted_levels_solved_status[current_handcrafted_level_index];
     const bar_color = if (solved) YELLOW else grid_bar_color;
     for (0..5) |i| {
@@ -539,6 +526,12 @@ fn render_puzzle() void {
         shapes.draw_centered_rect(gridpos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, bar_color);
     }
 
+    // Draw the tiles in the grid.
+    for (grid, 0..) |tile, ti| {
+        const tile_pos = grid_tile_positions[ti];
+        draw_tile(tile, tile_pos);
+    }
+    
     // Draw tile options.
     const background_rect_pos = tile_options_geometry.background_rect_pos;
     const tile_option_spacing = 0.015 * minimum_screen_dim;
