@@ -3,6 +3,8 @@ const shapes = @import("shapes.zig");
 const Vec2   = @Vector(2, f32);
 const Color = [4] u8;
 
+const DEBUG   = Color{255,   0, 255, 255};
+
 pub const Button = struct {
     hovering   : bool,
     width      : f32,
@@ -14,7 +16,7 @@ pub const Button = struct {
     color2_hov : Color,
 };
 
-pub fn render_arrow(b : Button, arrow_is_pointing_left : bool) void {
+pub fn render_arrow_button(b : Button, arrow_is_pointing_left : bool) void {
     // Convert the direction to +1 or -1.
     const dir : f32 = if (arrow_is_pointing_left) 1 else -1;
     const background_color = if (b.hovering) b.color1_hov else b.color1_def;
@@ -46,6 +48,10 @@ pub fn render_menu_button(b : Button) void {
     for (rect_pos) |pos| {
         shapes.draw_centered_rect(pos, square_length, subrectangle_height, detail_color);
     }
+}
+
+pub fn render_reset_button(b : Button) void {
+    shapes.draw_centered_rect(b.pos, b.width, b.height, DEBUG);
 }
 
 pub fn render_bordered_rect(b : Button) void {

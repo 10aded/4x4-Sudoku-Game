@@ -100,8 +100,8 @@ const TRANSPARENT = Color{0,0,0,0};
 
 const DEBUG  = MAGENTA;
 
-const initial_screen_width = 1902;
-const initial_screen_hidth = 1080;
+const initial_screen_width =     1920;
+const initial_screen_hidth =     1920 / 4 * 3;
 const WINDOW_TITLE = "4x4 Sudoku Game";
 
 // Globals
@@ -142,6 +142,11 @@ const menu_return_button_background_def_color = LIGHTGRAY;
 const menu_return_button_detail_def_color     = DARKGRAY;
 const menu_return_button_background_hov_color = LIGHTGRAY;
 const menu_return_button_detail_hov_color     = YELLOW;
+
+const reset_button_background_def_color  = LIGHTGRAY;
+const reset_button_detail_def_color      = DARKGRAY;
+const reset_button_background_hov_color  = LIGHTGRAY;
+const reset_button_detail_hov_color      = YELLOW;
 
 var numeral_textures : [4] rl.Texture2D = undefined;
 
@@ -192,15 +197,27 @@ const menu_return_button_defaults = button.Button{
     .color2_hov = menu_return_button_detail_hov_color,
 };
 
+const reset_button_defaults = button.Button{
+    .hovering   = false,
+    .width      = 0,
+    .height     = 0,
+    .pos        = .{0,0},
+    .color1_def = reset_button_background_def_color,
+    .color2_def = reset_button_detail_def_color,
+    .color1_hov = reset_button_background_hov_color,
+    .color2_hov = reset_button_detail_hov_color,
+};
+
 // The actual buttons...
 var left_arrow_button       = arrow_button_defaults;
 var right_arrow_button      = arrow_button_defaults;
 var menu_handcrafted_button = menu_button_defaults;
 var menu_return_button      = menu_return_button_defaults;
+var reset_button            = reset_button_defaults;
 
 // Grid geometry
 const Grid_Geometry = struct{
-    gridpos             : Vec2,
+    grid_pos            : Vec2,
     tile_length         : f32,
     bar_thickness       : f32,
     total_length        : f32,
@@ -296,16 +313,16 @@ pub fn main() anyerror!void {
 // Calculate the sizes of much of the global geometry.
 fn calculate_geometry() void {
     // Grid calculations.
-    const gridpos       = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
+    const grid_pos       = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
     const tile_length   = 0.1  * minimum_screen_dim;
     const bar_thickness = 0.01 * minimum_screen_dim;
     const total_length  = 5 * bar_thickness + 4 * tile_length;
-    grid_geometry.gridpos       = gridpos;
-    grid_geometry.tile_length = tile_length;
+    grid_geometry.grid_pos      = grid_pos;
+    grid_geometry.tile_length   = tile_length;
     grid_geometry.bar_thickness = bar_thickness;
     grid_geometry.total_length  = total_length;
 
-    const tl_tile_pos = gridpos - Vec2{1.5 * ( tile_length + bar_thickness), 1.5 * ( tile_length + bar_thickness)};
+    const tl_tile_pos = grid_pos - Vec2{1.5 * ( tile_length + bar_thickness), 1.5 * ( tile_length + bar_thickness)};
     
     for (0..4) |yi| {
         for (0..4) |xi| {
@@ -346,16 +363,14 @@ fn calculate_geometry() void {
     const arrow_button_height =  pbutton_height;
     const left_posx  = grid_geometry.grid_tile_positions[0][0];
     const right_posx = grid_geometry.grid_tile_positions[3][0];
-    const left_posy  = pbutton_posy;
-    const right_posy = left_posy;
     
     left_arrow_button.width  = arrow_button_width;
     left_arrow_button.height = arrow_button_height;
-    left_arrow_button.pos    = .{left_posx, left_posy};
+    left_arrow_button.pos    = .{left_posx, pbutton_posy};
 
     right_arrow_button.width  = arrow_button_width;
     right_arrow_button.height = arrow_button_height;
-    right_arrow_button.pos    = .{right_posx, right_posy};
+    right_arrow_button.pos    = .{right_posx, pbutton_posy};
 
     // Menu return button calculations.
     const menu_return_button_width  = pbutton_width;
@@ -365,6 +380,14 @@ fn calculate_geometry() void {
     menu_return_button.pos   = Vec2{menu_return_posx, menu_return_posy};
     menu_return_button.width = arrow_button_width;
     menu_return_button.height = arrow_button_height;
+
+    // Grid reset
+    const reset_button_width  = pbutton_width;
+    const reset_button_height = pbutton_height;
+    const reset_button_posx  = grid_pos[0];
+    reset_button.pos = .{reset_button_posx, pbutton_posy};
+    reset_button.width = reset_button_width;
+    reset_button.height = reset_button_height;
 }
 
 fn process_input_update_state() void {
@@ -516,20 +539,21 @@ fn render_menu() void {
 fn render_puzzle() void {
     const grid = current_handcrafted_levels[current_handcrafted_level_index];
     
-    const gridpos             = grid_geometry.gridpos;
+    const grid_pos             = grid_geometry.grid_pos;
     const tile_length         = grid_geometry.tile_length;
     const bar_thickness       = grid_geometry.bar_thickness;
     const total_length        = grid_geometry.total_length;
     const grid_tile_positions = grid_geometry.grid_tile_positions;
 
-    // Draw menu and arrow buttons.
+    // Draw menu, arrow, and reset buttons.
     button.render_menu_button(menu_return_button);
-    button.render_arrow(left_arrow_button, true);
-    button.render_arrow(right_arrow_button, false);
+    button.render_arrow_button(left_arrow_button, true);
+    button.render_arrow_button(right_arrow_button, false);
+    button.render_reset_button(reset_button);
     
     // Draw grid background.
     const background_length = total_length - bar_thickness;
-    shapes.draw_centered_rect(gridpos, background_length, background_length, grid_fill_color);
+    shapes.draw_centered_rect(grid_pos, background_length, background_length, grid_fill_color);
 
     // Draw grid bars.
     // @temp, presumably bc this is how we're currently indicating  that something is solved !
@@ -537,8 +561,8 @@ fn render_puzzle() void {
     const bar_color = if (solved) YELLOW else grid_bar_color;
     for (0..5) |i| {
         const offset = @as(f32, @floatFromInt(i)) - 2;
-        shapes.draw_centered_rect(gridpos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, bar_color);
-        shapes.draw_centered_rect(gridpos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, bar_color);
+        shapes.draw_centered_rect(grid_pos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, bar_color);
+        shapes.draw_centered_rect(grid_pos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, bar_color);
     }
 
     // Draw the tiles in the grid.
