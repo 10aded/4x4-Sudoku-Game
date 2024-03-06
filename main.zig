@@ -586,6 +586,13 @@ fn render_puzzle() void {
     if (tile_dragging_index != 0) {
         draw_tile(-1 * @as(i8, @intCast(tile_dragging_index)), mouse_to_tile_dragging_vec + mouse_pos);
     }
+
+    // @debug
+    // Draw FPS.
+    const fps_posx : c_int = @intFromFloat(screen_width - 100);
+    const fps_posy : c_int = @intFromFloat(screen_hidth - 100);
+    rl.DrawFPS(fps_posx, fps_posy);
+    
 }
 
 fn rlc(color : Color) rl.Color {
