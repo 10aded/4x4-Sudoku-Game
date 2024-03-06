@@ -26,9 +26,8 @@
 
 
 // TODO LIST:
-// *  Make right clicking cycle through tile options.
 // *  Don't forget an RESET button.
-// *  Main menu
+// *  Main menu, add a "mouse instructions"
 
 const std    = @import("std");
 const qoi    = @import("qoi.zig");
@@ -147,9 +146,11 @@ const menu_return_button_detail_hov_color     = YELLOW;
 var numeral_textures : [4] rl.Texture2D = undefined;
 
 // Mouse
-var mouse_down            : bool = undefined;
-var mouse_down_last_frame : bool = false;
-var mouse_pos             : Vec2 = undefined;
+var left_mouse_down             : bool = undefined;
+var left_mouse_down_last_frame  : bool = false;
+var right_mouse_down            : bool = undefined;
+var right_mouse_down_last_frame : bool = false;
+var mouse_pos                   : Vec2 = undefined;
 
 // Screen geometry
 var screen_width : f32 = undefined;
@@ -371,9 +372,12 @@ fn process_input_update_state() void {
     const rl_mouse_pos = rl.GetMousePosition();
     mouse_pos = Vec2 { rl_mouse_pos.x, rl_mouse_pos.y};
 
-    // Detect button clicks.
-    mouse_down = rl.IsMouseButtonDown(rl.MOUSE_BUTTON_LEFT);
-    defer mouse_down_last_frame = mouse_down;
+    // Detect mouse clicks.
+    left_mouse_down  = rl.IsMouseButtonDown(rl.MOUSE_BUTTON_LEFT);
+    defer left_mouse_down_last_frame = left_mouse_down;
+
+    right_mouse_down = rl.IsMouseButtonDown(rl.MOUSE_BUTTON_RIGHT);
+    defer right_mouse_down_last_frame = right_mouse_down;
 
     // Do hover / click logic for the type of screen that the current frame is on.
     switch(gamemode) {
@@ -391,7 +395,7 @@ fn process_input_update_state() void {
 fn process_menu_hover_clicks() void {
     // Determine whether the menu buttons have been hovered / clicked.
     button.set_hover_status(mouse_pos, &menu_handcrafted_button);
-    if (mouse_down and ! mouse_down_last_frame and menu_handcrafted_button.hovering) {
+    if (left_mouse_down and ! left_mouse_down_last_frame and menu_handcrafted_button.hovering) {
         gamemode = .puzzles_handcrafted;
     }
 }
@@ -404,7 +408,7 @@ fn process_puzzle_hover_clicks() void {
     const grid_positions = &grid_geometry.grid_tile_positions;
     
     // Determine whether a tile option has been clicked.
-    if (mouse_down and ! mouse_down_last_frame) {
+    if (left_mouse_down and ! left_mouse_down_last_frame) {
         for (tile_options_geometry.tile_positions, 0..) |pos, i| {
             if (is_tile_hovered(mouse_pos, pos)) {
                 tile_dragging_index = i + 1;
@@ -412,8 +416,8 @@ fn process_puzzle_hover_clicks() void {
             }
         }
     }
-    // Determine whether a clickable grid tile has been clicked.
-    if (mouse_down and ! mouse_down_last_frame) {
+    // Determine whether a clickable grid tile has been left clicked.
+    if (left_mouse_down and ! left_mouse_down_last_frame) {
         for (grid_positions, 0..) |tpos, i| {
             if (is_tile_hovered(mouse_pos, tpos) and grid[i] < 0) {
                 const tile_type = grid[i];
@@ -425,9 +429,20 @@ fn process_puzzle_hover_clicks() void {
             }
         }
     }
+
+    // Determine whether a clickable grid tile has been right clicked.
+    if (right_mouse_down and ! right_mouse_down_last_frame) {
+        for (grid_positions, 0..) |tpos, i| {
+            if (is_tile_hovered(mouse_pos, tpos) and grid[i] <= 0) {
+                const tile_type = grid[i];
+                // Cycle tile.
+                grid[i] = @rem(tile_type - 1, 5);
+            }
+        }
+    }
     
     // if click released, do dragged tile logic.
-    if (! mouse_down and mouse_down_last_frame) {
+    if (! left_mouse_down and left_mouse_down_last_frame) {
         defer tile_dragging_index = 0;
         // Determine if the dragged tile pos is in grid.
         const dragged_tile_pos = mouse_pos + mouse_to_tile_dragging_vec;
@@ -449,18 +464,18 @@ fn process_puzzle_hover_clicks() void {
     button.set_hover_status(mouse_pos, &right_arrow_button);
 
     // Left click on menu return button moves to menu.
-    if (mouse_down and ! mouse_down_last_frame and menu_return_button.hovering) {
+    if (left_mouse_down and ! left_mouse_down_last_frame and menu_return_button.hovering) {
         gamemode = .main_menu;
     }
     
     // Left click on left arrow moves to previous level.
-    if (mouse_down and ! mouse_down_last_frame and left_arrow_button.hovering) {
+    if (left_mouse_down and ! left_mouse_down_last_frame and left_arrow_button.hovering) {
         if (current_handcrafted_level_index != 0) {
             current_handcrafted_level_index -= 1;
         }
     }
     // Left click on right arrow move to next level.
-    if (mouse_down and ! mouse_down_last_frame and right_arrow_button.hovering) {
+    if (left_mouse_down and ! left_mouse_down_last_frame and right_arrow_button.hovering) {
         if (current_handcrafted_level_index != NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
             current_handcrafted_level_index += 1;
         }
