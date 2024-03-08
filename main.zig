@@ -28,6 +28,7 @@
 // TODO LIST:
 // *  Main menu, add a "mouse instructions"
 // *  Create some levels!!!
+// *  Choose a niceish color theme
 
 const std    = @import("std");
 const qoi    = @import("qoi.zig");
@@ -239,6 +240,9 @@ pub fn main() anyerror!void {
     // const seed  = std.time.milliTimestamp();
     // prng        = std.rand.DefaultPrng.init(@intCast(seed));
 
+    // Attempt to make GPU not burn to 100%.
+    rl.SetConfigFlags(rl.FLAG_VSYNC_HINT);
+    
     // Spawn / setup raylib window.    
     rl.InitWindow(initial_screen_width, initial_screen_hidth, WINDOW_TITLE);
     defer rl.CloseWindow();
