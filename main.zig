@@ -68,15 +68,27 @@ const GameMode =  enum(u8) {
 
 const Button = button.Button;
 
-// Make space to decode the bitmap at comptime.
-const bitmap = @embedFile("Bitmap-Stuff/8514-bitmap.qoi");
-const bitmap_header = qoi.comptime_header_parser(bitmap);
-const bitmap_width  = @as(u64, bitmap_header.image_width);
-const bitmap_height = @as(u64, bitmap_header.image_height);
+// Make space to decode the "1234", "START GAME", and "INSTRUCTIONS"
+// bitmaps at comptime.
+const bitmap_1234       = @embedFile("Bitmap-Stuff/1234-bitmap-8514.qoi");
+const text_START_GAME   = @embedFile("Bitmap-Stuff/text-start-game.qoi");
+//const text_INSTRUCTIONS = @embedFile("Bitmap-Stuff/text-instructions.qoi");
 
-var bitmap_pixels : [bitmap_width * bitmap_height] Pixel = undefined;
-var bitmap_bools : [bitmap_width * bitmap_height] bool = undefined;
+const bitmap_1234_header = qoi.comptime_header_parser(bitmap_1234);
+const bitmap_1234_width  = @as(u64, bitmap_1234_header.image_width);
+const bitmap_1234_height = @as(u64, bitmap_1234_header.image_height);
 
+const text_start_game_header = qoi.comptime_header_parser(text_START_GAME);
+const text_start_game_width  = @as(u64, text_start_game_header.image_width);
+const text_start_game_height = @as(u64, text_start_game_header.image_height);
+
+// const text_instructions_header = qoi.comptime_header_parser(text_instructions);
+// const text_instructions_width  = @as(u64, text_instructions_header.image_width);
+// const text_instructions_height = @as(u64, text_instructions_header.image_height);
+
+var bitmap_1234_pixels       : [bitmap_1234_width * bitmap_1234_height] Pixel = undefined;
+var text_start_game_pixels   : [text_start_game_width * text_start_game_height] Pixel = undefined;
+//var text_instructions_pixels : [text_instructions_width * text_instructions_height] Pixel = undefined;
 
 // Misc. procedures.
 
@@ -149,7 +161,9 @@ const reset_button_detail_def_color      = DARKGRAY;
 const reset_button_background_hov_color  = LIGHTGRAY;
 const reset_button_detail_hov_color      = YELLOW;
 
+// Textures
 var numeral_textures : [4] rl.Texture2D = undefined;
+var text_start_game_texture  :     rl.Texture2D = undefined;
 
 // Mouse
 var left_mouse_down             : bool = undefined;
@@ -209,12 +223,16 @@ const reset_button_defaults = button.Button{
     .color2_hov = reset_button_detail_hov_color,
 };
 
-// The actual buttons...
+// Menu buttons.
+var start_game_button       = menu_button_defaults;
+var instructions_button     = menu_button_defaults;
+
+// Puzzle game buttons.
 var left_arrow_button       = arrow_button_defaults;
 var right_arrow_button      = arrow_button_defaults;
-var menu_handcrafted_button = menu_button_defaults;
-var menu_return_button      = menu_return_button_defaults;
 var reset_button            = reset_button_defaults;
+var menu_return_button      = menu_return_button_defaults;
+
 
 // Grid geometry
 const Grid_Geometry = struct{
@@ -254,10 +272,12 @@ pub fn main() anyerror!void {
 
     gamemode = GameMode.puzzles_handcrafted;
 
-    // Load at runtime the bitmap, and convert to an array of bools.
-    qoi.qoi_to_pixels(bitmap, bitmap_width * bitmap_height, &bitmap_pixels);
+    // Load at runtime the 1234 bitmap, and the text .qoi files.
+    qoi.qoi_to_pixels(bitmap_1234, bitmap_1234_width * bitmap_1234_height, &bitmap_1234_pixels);
+    qoi.qoi_to_pixels(text_START_GAME, text_start_game_width * text_start_game_height, &text_start_game_pixels);
+//    qoi.qoi_to_pixels(text_INSTRUCTIONS, text_instructions_width * text_instructions_height, &text_instructions_pixels);
 
-    dprint("{any}\n", .{bitmap_pixels}); // @debug
+    //    dprint("{any}\n", .{bitmap_1234_pixels}); // @debug
     
     // Create a rl.Image s from which to generate the textures containing
     // the bitmap numerals in the game.
@@ -266,11 +286,16 @@ pub fn main() anyerror!void {
     // Each character in the bitmap has an x offset that is a multiple of 10.
     // Each has the same height of 20.
     
-    var numeral_images : [4] rl.Image = undefined;
+    var numeral_images     : [4] rl.Image = undefined;
+    var start_game_image   :     rl.Image = undefined;
+//    var instructions_image :     rl.Image = undefined;
 
+    // Set dimensions of / initialize the images.
     for (0..4) |i| {
         numeral_images[i] = rl.GenImageColor(20, 20, rlc(TRANSPARENT));
     }
+    start_game_image   = rl.GenImageColor(text_start_game_header.image_width, text_start_game_header.image_height, rlc(TRANSPARENT));
+//    instructions_image = rl.GenImageColor(@truncate(instructions_game_width), @truncate(instructions_game_height), rlc(TRANSPARENT));
 
     // Initialize the textures for '1', '2', '3', '4'.
     // Since the images have a width of 20, but the numerals have a width
@@ -284,8 +309,8 @@ pub fn main() anyerror!void {
     for (0..4) |numeral_i| {
         for (0..20) |yi| {
             for (0..10) |xi| {
-                const bitmap_pixel_color = bitmap_pixels[yi * bitmap_width + xi + 10 * numeral_i];
-                const color = if (bitmap_pixel_color[0] == 255) BLACK else TRANSPARENT;
+                const pixel_color = bitmap_1234_pixels[yi * bitmap_1234_width + xi + 10 * numeral_i];
+                const color = if (pixel_color[0] == 255) BLACK else TRANSPARENT;
                 rl.ImageDrawPixel(&numeral_images[numeral_i], @intCast(xi + 5), @intCast(yi), rlc(color)); 
             }
         }
@@ -295,7 +320,16 @@ pub fn main() anyerror!void {
         numeral_textures[i] = rl.LoadTextureFromImage(numeral_images[i]);
     }
 
-    //    dprint("{any}\n", .{bitmap_bools}); // @debug
+    // Fill in the "START GAME" and "INSTRUCTIONS" Images and create their textures.
+    for (0..text_start_game_width) |xi| {
+        for (0..text_start_game_height) |yi| {
+            const pixel_color = text_start_game_pixels[yi * text_start_game_width + xi];
+            const color = if (pixel_color[0] == 255) BLACK else TRANSPARENT;
+            rl.ImageDrawPixel(&start_game_image, @intCast(xi), @intCast(yi), rlc(color)); 
+        }
+    }
+
+    text_start_game_texture = rl.LoadTextureFromImage(start_game_image);
     
     // +----------------+
     // | Main game loop |
@@ -349,13 +383,28 @@ fn calculate_geometry() void {
     }
 
     // Menu button calculations.
-    const menu_button_width   = 0.5 * screen_width;
-    const menu_button_height  = 0.1 * screen_hidth;
-    const menu_button_pos     = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
-    menu_handcrafted_button.pos    = menu_button_pos;
-    menu_handcrafted_button.width  = menu_button_width;
-    menu_handcrafted_button.height = menu_button_height;
+    // Try setting the width of the buttons to 80% screen width.
+    // If the corresponding text height is > 10%, shrink so that
+    // its height is 10%.
 
+    const max_text_width   = 0.8 * screen_width;
+    const max_text_height  = 0.1 * screen_hidth;
+    const start_game_ratio = @as(f32, @floatFromInt(text_start_game_height)) / @as(f32, @floatFromInt(text_start_game_width));
+//    const text_instructions_ratio = @as(f64, @floatFromInt(text_instructions_width)) / @as(f64, @floatFromInt(text_instructions_height));
+
+    var start_game_button_height = start_game_ratio * max_text_width;
+    if (start_game_button_height > max_text_height) {
+        start_game_button_height = max_text_height;
+    }
+
+    const start_game_button_width = start_game_button_height / start_game_ratio;
+
+    // Set start_game_button and instructions_button pos, widths etc.
+    // TODO:
+    // Add in INSTRUCTIONS_BUTTON.
+    start_game_button.pos    = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
+    start_game_button.width  = start_game_button_width;
+    start_game_button.height = start_game_button_height;
 
     // Puzzle-solving screen buttons. 
     // Arrow button calculations.
@@ -421,8 +470,8 @@ fn process_input_update_state() void {
 
 fn process_menu_hover_clicks() void {
     // Determine whether the menu buttons have been hovered / clicked.
-    button.set_hover_status(mouse_pos, &menu_handcrafted_button);
-    if (left_mouse_down and ! left_mouse_down_last_frame and menu_handcrafted_button.hovering) {
+    button.set_hover_status(mouse_pos, &start_game_button);
+    if (left_mouse_down and ! left_mouse_down_last_frame and start_game_button.hovering) {
         gamemode = .puzzles_handcrafted;
     }
 }
@@ -540,7 +589,12 @@ fn render() void {
 
 fn render_menu() void {
     // TODO... add text to main menu buttons.
-    button.render_bordered_rect(menu_handcrafted_button);
+    
+    button.render_bordered_rect(start_game_button);
+
+    // @debug
+    // Draw "START GAME"
+    draw_texture(&text_start_game_texture, start_game_button.pos, start_game_button.height);    
 }
 
 fn render_puzzle() void {
