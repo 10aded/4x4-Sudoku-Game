@@ -227,6 +227,9 @@ const reset_button_defaults = button.Button{
 var start_game_button       = menu_button_defaults;
 var instructions_button     = menu_button_defaults;
 
+// Menu button geometry.
+var start_game_text_height : f32 = undefined;
+
 // Puzzle game buttons.
 var left_arrow_button       = arrow_button_defaults;
 var right_arrow_button      = arrow_button_defaults;
@@ -270,7 +273,7 @@ pub fn main() anyerror!void {
 
     //    const random = prng.random();
 
-    gamemode = GameMode.puzzles_handcrafted;
+    gamemode = GameMode.main_menu;
 
     // Load at runtime the 1234 bitmap, and the text .qoi files.
     qoi.qoi_to_pixels(bitmap_1234, bitmap_1234_width * bitmap_1234_height, &bitmap_1234_pixels);
@@ -392,14 +395,19 @@ fn calculate_geometry() void {
     const start_game_ratio = @as(f32, @floatFromInt(text_start_game_height)) / @as(f32, @floatFromInt(text_start_game_width));
 //    const text_instructions_ratio = @as(f64, @floatFromInt(text_instructions_width)) / @as(f64, @floatFromInt(text_instructions_height));
 
-    var start_game_button_height = start_game_ratio * max_text_width;
-    if (start_game_button_height > max_text_height) {
-        start_game_button_height = max_text_height;
+    start_game_text_height = start_game_ratio * max_text_width;
+    if (start_game_text_height > max_text_height) {
+        start_game_text_height = max_text_height;
     }
 
-    const start_game_button_width = start_game_button_height / start_game_ratio;
+    const start_game_text_width = start_game_text_height / start_game_ratio;
 
-    // Set start_game_button and instructions_button pos, widths etc.
+    const text_button_buffer       = 0.3 * start_game_text_height;
+    const start_game_button_height = start_game_text_height + 2 * text_button_buffer;
+    const start_game_button_width  = start_game_text_width  + 2 * text_button_buffer;
+
+    // Set start_game_button and instructions_button position, widths etc.
+    
     // TODO:
     // Add in INSTRUCTIONS_BUTTON.
     start_game_button.pos    = Vec2{0.5 * screen_width, 0.5 * screen_hidth};
@@ -588,13 +596,11 @@ fn render() void {
 }
 
 fn render_menu() void {
-    // TODO... add text to main menu buttons.
-    
+    // Draw "START GAME" button.
     button.render_bordered_rect(start_game_button);
-
-    // @debug
-    // Draw "START GAME"
-    draw_texture(&text_start_game_texture, start_game_button.pos, start_game_button.height);    
+    draw_texture(&text_start_game_texture, start_game_button.pos, start_game_text_height);
+    // TODO...
+    // Draw "INSTRUCTIONS" button.
 }
 
 fn render_puzzle() void {
