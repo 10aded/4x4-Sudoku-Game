@@ -26,7 +26,6 @@
 
 
 // TODO LIST:
-// *  Add menu button to instructions screen
 // *  Create some levels!!!
 // *  Choose a niceish color theme.
 
