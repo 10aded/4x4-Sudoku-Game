@@ -248,9 +248,12 @@ var menu_return_button      = menu_return_button_defaults;
 
 // Instruction menu geometry.
 const Instructions_Geometry = struct{
-    mouse1_pos   : Vec2,
-    mouse2_pos   : Vec2,
-    mouse_height : f32,
+    mouse1_pos     : Vec2,
+    mouse2_pos     : Vec2,
+    mouse_height   : f32,
+    disk1_pos      : Vec2,
+    disk2_pos      : Vec2,
+    disk_radius    : f32,
 };
 
 var instructions_geometry : Instructions_Geometry = undefined;
@@ -497,9 +500,15 @@ fn calculate_geometry() void {
     reset_button.height = reset_button_height;
 
     // Instruction screen calculations.
-    instructions_geometry.mouse1_pos = Vec2{0.25 * screen_width, 0.25 * screen_hidth};
-    instructions_geometry.mouse2_pos = Vec2{0.25 * screen_width, 0.75 * screen_hidth};
-    instructions_geometry.mouse_height = 0.3 * screen_hidth;
+    const mouse_height = 0.3 * screen_hidth;
+    instructions_geometry.disk_radius = 0.05 * mouse_height;
+    const mouse1_pos =  Vec2{0.25 * screen_width, 0.25 * screen_hidth};
+    const mouse2_pos =  Vec2{0.25 * screen_width, 0.75 * screen_hidth};
+    instructions_geometry.mouse1_pos   = mouse1_pos; 
+    instructions_geometry.mouse2_pos   = mouse2_pos; 
+    instructions_geometry.mouse_height = mouse_height;
+    instructions_geometry.disk1_pos    = mouse1_pos + Vec2{-0.15 * mouse_height, -0.15 * mouse_height};
+    instructions_geometry.disk2_pos    = mouse2_pos + Vec2{0.10 * mouse_height, -0.25 * mouse_height};
 }
 
 fn process_input_update_state() void {
@@ -671,12 +680,13 @@ fn render_instructions() void {
     draw_texture(&mouse_texture, instructions_geometry.mouse1_pos, instructions_geometry.mouse_height);
     draw_texture(&mouse_texture, instructions_geometry.mouse2_pos, instructions_geometry.mouse_height);
     // Draw some annuli around the mouse buttons.
-    // TODO...
+    const radius1 = instructions_geometry.disk_radius;
+    shapes.draw_centered_circle(instructions_geometry.disk1_pos, radius1, RED);
+    shapes.draw_centered_circle(instructions_geometry.disk2_pos, radius1, RED);
 }
 
 fn render_puzzle() void {
     const grid = current_handcrafted_levels[current_handcrafted_level_index];
-    
     const grid_pos             = grid_geometry.grid_pos;
     const tile_length         = grid_geometry.tile_length;
     const bar_thickness       = grid_geometry.bar_thickness;
