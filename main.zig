@@ -27,7 +27,6 @@
 
 // TODO LIST:
 // *  Make INSTRUCTIONS screen.
-// *  Clicking on the INSTRUCTIONS_BUTTON transitions to the instructions screen.
 // *  Create some levels!!!
 // *  Choose a niceish color theme.
 
@@ -75,6 +74,8 @@ const bitmap_1234       = @embedFile("Bitmap-Stuff/1234-bitmap-8514.qoi");
 const text_START_GAME   = @embedFile("Bitmap-Stuff/text-start-game.qoi");
 const text_INSTRUCTIONS = @embedFile("Bitmap-Stuff/text-instructions.qoi");
 const mouse_qoi         = @embedFile("Images/mouse.qoi");
+const left_click_qoi    = @embedFile("Images/left-click-image.qoi");
+const right_click_qoi    = @embedFile("Images/right-click-image.qoi");
 
 const bitmap_1234_header = qoi.comptime_header_parser(bitmap_1234);
 const bitmap_1234_width  = @as(u64, bitmap_1234_header.image_width);
@@ -92,10 +93,21 @@ const mouse_image_header = qoi.comptime_header_parser(mouse_qoi);
 const mouse_image_width  = @as(u64, mouse_image_header.image_width);
 const mouse_image_height = @as(u64, mouse_image_header.image_height);
 
+const left_click_header  = qoi.comptime_header_parser(left_click_qoi);
+const left_click_width   = @as(u64, left_click_header.image_width);
+const left_click_height   = @as(u64, left_click_header.image_height);
+
+
+const right_click_header = qoi.comptime_header_parser(right_click_qoi);
+const right_click_width   = @as(u64, right_click_header.image_width);
+const right_click_height   = @as(u64, right_click_header.image_height);
+
 var bitmap_1234_pixels       : [bitmap_1234_width * bitmap_1234_height] Pixel = undefined;
 var text_start_game_pixels   : [text_start_game_width * text_start_game_height] Pixel = undefined;
 var text_instructions_pixels : [text_instructions_width * text_instructions_height] Pixel = undefined;
 var mouse_image_pixels       : [mouse_image_width * mouse_image_height] Pixel = undefined;
+var left_click_pixels        : [left_click_width  * left_click_height] Pixel = undefined;
+var right_click_pixels        : [right_click_width  * right_click_height] Pixel = undefined;
 
 // Misc. procedures.
 
@@ -173,6 +185,8 @@ var numeral_textures : [4] rl.Texture2D = undefined;
 var start_game_texture   :     rl.Texture2D = undefined;
 var instructions_texture :     rl.Texture2D = undefined;
 var mouse_texture        :     rl.Texture2D = undefined;
+var left_click_texture   :     rl.Texture2D = undefined;
+var right_click_texture  :     rl.Texture2D = undefined;
 
 // Mouse
 var left_mouse_down             : bool = undefined;
@@ -301,6 +315,8 @@ pub fn main() anyerror!void {
     qoi.qoi_to_pixels(text_START_GAME, text_start_game_width * text_start_game_height, &text_start_game_pixels);
     qoi.qoi_to_pixels(text_INSTRUCTIONS, text_instructions_width * text_instructions_height, &text_instructions_pixels);
     qoi.qoi_to_pixels(mouse_qoi, mouse_image_width * mouse_image_height, &mouse_image_pixels);
+    qoi.qoi_to_pixels(left_click_qoi, left_click_width * left_click_height, &left_click_pixels);
+    qoi.qoi_to_pixels(right_click_qoi, right_click_width * right_click_height, &right_click_pixels);
 
     //    dprint("{any}\n", .{bitmap_1234_pixels}); // @debug
     
@@ -315,6 +331,8 @@ pub fn main() anyerror!void {
     var start_game_image   :     rl.Image = undefined;
     var instructions_image :     rl.Image = undefined;
     var mouse_image        :     rl.Image = undefined;
+    var left_click_image   :     rl.Image = undefined;
+    var right_click_image  :     rl.Image = undefined;
 
     // Set dimensions of / initialize the images.
     for (0..4) |i| {
@@ -324,6 +342,8 @@ pub fn main() anyerror!void {
     start_game_image   = rl.GenImageColor(text_start_game_header.image_width, text_start_game_header.image_height, rlc(TRANSPARENT));
     instructions_image = rl.GenImageColor(text_instructions_header.image_width, text_instructions_header.image_height, rlc(TRANSPARENT));
     mouse_image        = rl.GenImageColor(mouse_image_header.image_width, mouse_image_header.image_height, rlc(TRANSPARENT));
+    left_click_image  = rl.GenImageColor(left_click_header.image_width, left_click_header.image_height, rlc(TRANSPARENT));
+    right_click_image  = rl.GenImageColor(right_click_header.image_width, right_click_header.image_height, rlc(TRANSPARENT));
 
     // Initialize the textures for '1', '2', '3', '4'.
     // Since the images have a width of 20, but the numerals have a width
@@ -366,6 +386,7 @@ pub fn main() anyerror!void {
     }
 
     // Iterate through the pixels of the mouse_image and store them in the raylib image.
+    // Similarly for the instructions images.
     for (0..mouse_image_width) |xi| {
         for (0..mouse_image_height) |yi| {
             const index = mouse_image_width * yi + xi;
@@ -373,9 +394,24 @@ pub fn main() anyerror!void {
         }
     }
     
+    for (0..left_click_width) |xi| {
+        for (0..left_click_height) |yi| {
+            const index = left_click_width * yi + xi;
+            rl.ImageDrawPixel(&left_click_image, @intCast(xi), @intCast(yi), rlc(left_click_pixels[index]));             
+        }
+    }
+    for (0..right_click_width) |xi| {
+        for (0..right_click_height) |yi| {
+            const index = right_click_width * yi + xi;
+            rl.ImageDrawPixel(&right_click_image, @intCast(xi), @intCast(yi), rlc(right_click_pixels[index]));             
+        }
+    }
+    
     start_game_texture   = rl.LoadTextureFromImage(start_game_image);
     instructions_texture = rl.LoadTextureFromImage(instructions_image);
     mouse_texture        = rl.LoadTextureFromImage(mouse_image);
+    left_click_texture   = rl.LoadTextureFromImage(left_click_image);
+    right_click_texture   = rl.LoadTextureFromImage(right_click_image);
     
     // +----------------+
     // | Main game loop |
@@ -677,12 +713,21 @@ fn render_menu() void {
 
 fn render_instructions() void {
     // Draw the mouse, twice!
-    draw_texture(&mouse_texture, instructions_geometry.mouse1_pos, instructions_geometry.mouse_height);
-    draw_texture(&mouse_texture, instructions_geometry.mouse2_pos, instructions_geometry.mouse_height);
+    const mouse_height = instructions_geometry.mouse_height;
+    const mouse1pos = instructions_geometry.mouse1_pos;
+    const mouse2pos = instructions_geometry.mouse2_pos;
+    const instructions_height = 0.3 * mouse_height;
+    draw_texture(&mouse_texture, mouse1pos, mouse_height);
+    draw_texture(&mouse_texture, mouse2pos, mouse_height);
     // Draw some annuli around the mouse buttons.
     const radius1 = instructions_geometry.disk_radius;
     shapes.draw_centered_circle(instructions_geometry.disk1_pos, radius1, RED);
     shapes.draw_centered_circle(instructions_geometry.disk2_pos, radius1, RED);
+    // Draw the instructions images.
+    const left_click_pos = Vec2{0.75 * screen_width, mouse1pos[1]};
+    const right_click_pos = Vec2{0.75 * screen_width, mouse2pos[1]};
+    draw_texture(&left_click_texture, left_click_pos, instructions_height);
+    draw_texture(&right_click_texture, right_click_pos, instructions_height);
 }
 
 fn render_puzzle() void {
