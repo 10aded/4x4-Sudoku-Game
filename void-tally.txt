@@ -1,4 +1,4 @@
 The number of times a compile error has occured because I failed to
 include "void" in a procedure declaration:
 
-5
+6

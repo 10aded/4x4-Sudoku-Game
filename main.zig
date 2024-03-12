@@ -26,7 +26,7 @@
 
 
 // TODO LIST:
-// *  Make INSTRUCTIONS screen.
+// *  Add menu button to instructions screen
 // *  Create some levels!!!
 // *  Choose a niceish color theme.
 
@@ -569,8 +569,16 @@ fn process_input_update_state() void {
             update_current_grid_solved();
         },
         .instructions_screen => {
-//            process_instructions_hover_clicks();
+            process_instructions_hover_clicks();
         },
+    }
+}
+
+fn process_instructions_hover_clicks() void {
+    button.set_hover_status(mouse_pos, &menu_return_button);
+
+    if (left_mouse_down and ! left_mouse_down_last_frame and menu_return_button.hovering) {
+        gamemode = .main_menu;
     }
 }
 
@@ -728,6 +736,9 @@ fn render_instructions() void {
     const right_click_pos = Vec2{0.75 * screen_width, mouse2pos[1]};
     draw_texture(&left_click_texture, left_click_pos, instructions_height);
     draw_texture(&right_click_texture, right_click_pos, instructions_height);
+
+    // Render menu button.
+    button.render_menu_button(menu_return_button);
 }
 
 fn render_puzzle() void {
