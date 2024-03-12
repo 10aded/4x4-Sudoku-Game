@@ -26,7 +26,6 @@
 
 
 // TODO LIST:
-// *  Make relevant arrows disappear for first and last levels.
 // *  Make INSTRUCTIONS screen.
 // *  Clicking on the INSTRUCTIONS_BUTTON transitions to the instructions screen.
 // *  Create some levels!!!
@@ -64,8 +63,8 @@ const NUMBER_OF_HANDCRAFTED_LEVELS = handcrafted_levels.len;
 
 const GameMode =  enum(u8) {
     main_menu,
+    instructions_screen,
     puzzles_handcrafted,
-    puzzles_randomized,
 };
 
 const Button = button.Button;
@@ -75,6 +74,7 @@ const Button = button.Button;
 const bitmap_1234       = @embedFile("Bitmap-Stuff/1234-bitmap-8514.qoi");
 const text_START_GAME   = @embedFile("Bitmap-Stuff/text-start-game.qoi");
 const text_INSTRUCTIONS = @embedFile("Bitmap-Stuff/text-instructions.qoi");
+const mouse_qoi         = @embedFile("Images/mouse.qoi");
 
 const bitmap_1234_header = qoi.comptime_header_parser(bitmap_1234);
 const bitmap_1234_width  = @as(u64, bitmap_1234_header.image_width);
@@ -88,9 +88,14 @@ const text_instructions_header = qoi.comptime_header_parser(text_INSTRUCTIONS);
 const text_instructions_width  = @as(u64, text_instructions_header.image_width);
 const text_instructions_height = @as(u64, text_instructions_header.image_height);
 
+const mouse_image_header = qoi.comptime_header_parser(mouse_qoi);
+const mouse_image_width  = @as(u64, mouse_image_header.image_width);
+const mouse_image_height = @as(u64, mouse_image_header.image_height);
+
 var bitmap_1234_pixels       : [bitmap_1234_width * bitmap_1234_height] Pixel = undefined;
 var text_start_game_pixels   : [text_start_game_width * text_start_game_height] Pixel = undefined;
 var text_instructions_pixels : [text_instructions_width * text_instructions_height] Pixel = undefined;
+var mouse_image_pixels       : [mouse_image_width * mouse_image_height] Pixel = undefined;
 
 // Misc. procedures.
 
@@ -167,6 +172,7 @@ const reset_button_detail_hov_color      = YELLOW;
 var numeral_textures : [4] rl.Texture2D = undefined;
 var start_game_texture   :     rl.Texture2D = undefined;
 var instructions_texture :     rl.Texture2D = undefined;
+var mouse_texture        :     rl.Texture2D = undefined;
 
 // Mouse
 var left_mouse_down             : bool = undefined;
@@ -240,6 +246,15 @@ var reset_button            = reset_button_defaults;
 var menu_return_button      = menu_return_button_defaults;
 
 
+// Instruction menu geometry.
+const Instructions_Geometry = struct{
+    mouse1_pos   : Vec2,
+    mouse2_pos   : Vec2,
+    mouse_height : f32,
+};
+
+var instructions_geometry : Instructions_Geometry = undefined;
+    
 // Grid geometry
 const Grid_Geometry = struct{
     grid_pos            : Vec2,
@@ -282,6 +297,7 @@ pub fn main() anyerror!void {
     qoi.qoi_to_pixels(bitmap_1234, bitmap_1234_width * bitmap_1234_height, &bitmap_1234_pixels);
     qoi.qoi_to_pixels(text_START_GAME, text_start_game_width * text_start_game_height, &text_start_game_pixels);
     qoi.qoi_to_pixels(text_INSTRUCTIONS, text_instructions_width * text_instructions_height, &text_instructions_pixels);
+    qoi.qoi_to_pixels(mouse_qoi, mouse_image_width * mouse_image_height, &mouse_image_pixels);
 
     //    dprint("{any}\n", .{bitmap_1234_pixels}); // @debug
     
@@ -295,13 +311,16 @@ pub fn main() anyerror!void {
     var numeral_images     : [4] rl.Image = undefined;
     var start_game_image   :     rl.Image = undefined;
     var instructions_image :     rl.Image = undefined;
+    var mouse_image        :     rl.Image = undefined;
 
     // Set dimensions of / initialize the images.
     for (0..4) |i| {
         numeral_images[i] = rl.GenImageColor(20, 20, rlc(TRANSPARENT));
     }
+    
     start_game_image   = rl.GenImageColor(text_start_game_header.image_width, text_start_game_header.image_height, rlc(TRANSPARENT));
     instructions_image = rl.GenImageColor(text_instructions_header.image_width, text_instructions_header.image_height, rlc(TRANSPARENT));
+    mouse_image        = rl.GenImageColor(mouse_image_header.image_width, mouse_image_header.image_height, rlc(TRANSPARENT));
 
     // Initialize the textures for '1', '2', '3', '4'.
     // Since the images have a width of 20, but the numerals have a width
@@ -342,9 +361,18 @@ pub fn main() anyerror!void {
             rl.ImageDrawPixel(&instructions_image, @intCast(xi), @intCast(yi), rlc(color)); 
         }
     }
+
+    // Iterate through the pixels of the mouse_image and store them in the raylib image.
+    for (0..mouse_image_width) |xi| {
+        for (0..mouse_image_height) |yi| {
+            const index = mouse_image_width * yi + xi;
+            rl.ImageDrawPixel(&mouse_image, @intCast(xi), @intCast(yi), rlc(mouse_image_pixels[index]));             
+        }
+    }
     
     start_game_texture   = rl.LoadTextureFromImage(start_game_image);
     instructions_texture = rl.LoadTextureFromImage(instructions_image);
+    mouse_texture        = rl.LoadTextureFromImage(mouse_image);
     
     // +----------------+
     // | Main game loop |
@@ -467,6 +495,11 @@ fn calculate_geometry() void {
     reset_button.pos = .{reset_button_posx, pbutton_posy};
     reset_button.width = reset_button_width;
     reset_button.height = reset_button_height;
+
+    // Instruction screen calculations.
+    instructions_geometry.mouse1_pos = Vec2{0.25 * screen_width, 0.25 * screen_hidth};
+    instructions_geometry.mouse2_pos = Vec2{0.25 * screen_width, 0.75 * screen_hidth};
+    instructions_geometry.mouse_height = 0.3 * screen_hidth;
 }
 
 fn process_input_update_state() void {
@@ -490,7 +523,9 @@ fn process_input_update_state() void {
             process_puzzle_hover_clicks();
             update_current_grid_solved();
         },
-        .puzzles_randomized => unreachable,
+        .instructions_screen => {
+//            process_instructions_hover_clicks();
+        },
     }
 }
 
@@ -504,10 +539,9 @@ fn process_menu_hover_clicks() void {
         gamemode = .puzzles_handcrafted;
     }
 
-    // TODO: Clicking on the INSTRUCTIONS_BUTTON transitions to the instructions screen.
-    // if (left_mouse_down and ! left_mouse_down_last_frame and start_game_button.hovering) {
-    //     gamemode = .puzzles_handcrafted;
-    // }
+    if (left_mouse_down and ! left_mouse_down_last_frame and instructions_button.hovering) {
+        gamemode = .instructions_screen;
+    }
 }
  
 fn process_puzzle_hover_clicks() void {
@@ -565,12 +599,13 @@ fn process_puzzle_hover_clicks() void {
         }
     }
 
-    // Determine whether the mouse is hovering on either of the pbuttons.
+    // Determine whether the mouse is hovering on either of the pbuttons,
+    // provided the arrows are getting drawn.
     button.set_hover_status(mouse_pos, &menu_return_button);
+    button.set_hover_status(mouse_pos, &reset_button);
     button.set_hover_status(mouse_pos, &left_arrow_button);
     button.set_hover_status(mouse_pos, &right_arrow_button);
-    button.set_hover_status(mouse_pos, &reset_button);
-
+    
     // Left click on menu return button moves to menu.
     if (left_mouse_down and ! left_mouse_down_last_frame and menu_return_button.hovering) {
         gamemode = .main_menu;
@@ -615,8 +650,8 @@ fn render() void {
         .puzzles_handcrafted => {
             render_puzzle();
         },
-        .puzzles_randomized => {
-            unreachable;
+        .instructions_screen => {
+            render_instructions();
         },
     }
 }
@@ -631,6 +666,14 @@ fn render_menu() void {
     draw_texture(&instructions_texture, instructions_button.pos, menu_text_height);
 }
 
+fn render_instructions() void {
+    // Draw the mouse, twice!
+    draw_texture(&mouse_texture, instructions_geometry.mouse1_pos, instructions_geometry.mouse_height);
+    draw_texture(&mouse_texture, instructions_geometry.mouse2_pos, instructions_geometry.mouse_height);
+    // Draw some annuli around the mouse buttons.
+    // TODO...
+}
+
 fn render_puzzle() void {
     const grid = current_handcrafted_levels[current_handcrafted_level_index];
     
@@ -640,11 +683,17 @@ fn render_puzzle() void {
     const total_length        = grid_geometry.total_length;
     const grid_tile_positions = grid_geometry.grid_tile_positions;
 
-    // Draw menu, arrow, and reset buttons.
+    // Draw menu and reset buttons.
     button.render_menu_button(menu_return_button);
-    button.render_arrow_button(left_arrow_button, true);
-    button.render_arrow_button(right_arrow_button, false);
     button.render_reset_button(reset_button);
+
+    // Draw the left arrow button if not the first level, likewise for the last level.
+    if (current_handcrafted_level_index != 0) {
+        button.render_arrow_button(left_arrow_button, true);
+    }
+    if (current_handcrafted_level_index != NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
+        button.render_arrow_button(right_arrow_button, false);
+    }
     
     // Draw grid background.
     const background_length = total_length - bar_thickness;
