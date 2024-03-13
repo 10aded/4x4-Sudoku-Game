@@ -2,17 +2,17 @@
 
 **CURRENTLY A WORK-IN-PROGRESS**
 
-This is a simple puzzle game containing a collection of 4 x 4 Sudoku puzzles. Sudoku puzzles are a common type of grid puzzle, information about them can be found on Wikipedia.
+This is a simple puzzle game containing a collection of 4 x 4 Sudoku puzzles. Sudoku puzzles are a common type of grid puzzle; information about them can be found on [Wikipedia](https://en.wikipedia.org/wiki/Sudoku).
 
-![Screenshot](wip-screenshot.png "Work in progress screenshot!")
+![Screenshot](screenshot.png "A partial solution to one of the Sudoku puzzles.")
 
 ## Gameplay
 
-Use the mouse to drag tiles onto the grid so that each row, column, and 2 x 2 quadrant contains the numbers 1,2,3,4 in some order. Levels do not save on exit of the game.
+Use the mouse to drag tiles onto the grid so that each row, column, and 2 x 2 quadrant contains the numbers 1,2,3,4 in some order. Levels do not save when the game is quit.
 
 ## Build Instructions
 
-This is a Zig project that natively calls raylib code written in C. (More on dependencies below.)
+This is a Zig project that natively calls raylib code (written in C). (More on dependencies below.)
 
 Since the Zig compiler comes with its own build system and is also a C compiler, the project can be built and run with the command
 

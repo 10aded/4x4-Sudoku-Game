@@ -138,8 +138,9 @@ const TRANSPARENT = Color{0,0,0,0};
 
 const DEBUG  = MAGENTA;
 
-const initial_screen_width =     1920;
-const initial_screen_hidth =     1920 / 4 * 3;
+
+const initial_screen_hidth = 1080;
+const initial_screen_width = 1080 / 3 * 4;
 const WINDOW_TITLE = "4x4 Sudoku Game";
 
 // Globals
