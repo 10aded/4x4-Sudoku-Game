@@ -64,9 +64,18 @@ const Button = button.Button;
 
 // Make space to decode the "1234", "START GAME", and "INSTRUCTIONS"
 // bitmaps at comptime.
-const bitmap_1234       = @embedFile("Bitmap-Stuff/1234-bitmap-8514.qoi");
-const text_START_GAME   = @embedFile("Bitmap-Stuff/text-start-game.qoi");
-const text_INSTRUCTIONS = @embedFile("Bitmap-Stuff/text-instructions.qoi");
+//
+// The "1234" bitmap was created with the tool BMFont, freely available at:
+//
+//     https://www.angelcode.com/products/bmfont/
+//
+// The configuration settings which generated the bitmap were saved in the file
+//
+//     ./Text-1234/bitmap-options-8514.bmfc
+
+const bitmap_1234       = @embedFile("Text-1234/1234-bitmap-8514.qoi");
+const text_START_GAME   = @embedFile("Text-1234/text-start-game.qoi");
+const text_INSTRUCTIONS = @embedFile("Text-1234/text-instructions.qoi");
 const mouse_qoi         = @embedFile("Images/mouse.qoi");
 const left_click_qoi    = @embedFile("Images/left-click-image.qoi");
 const right_click_qoi    = @embedFile("Images/right-click-image.qoi");
