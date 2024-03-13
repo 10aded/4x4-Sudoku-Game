@@ -24,10 +24,6 @@
 //
 // See the pages above for full license details.
 
-
-// TODO LIST:
-// *  Choose a niceish color theme.
-
 const std    = @import("std");
 const qoi    = @import("qoi.zig");
 const parser = @import("level-parser.zig");
@@ -61,7 +57,7 @@ const NUMBER_OF_HANDCRAFTED_LEVELS = handcrafted_levels.len;
 const GameMode =  enum(u8) {
     main_menu,
     instructions_screen,
-    puzzles_handcrafted,
+    puzzles,
 };
 
 const Button = button.Button;
@@ -575,7 +571,7 @@ fn process_input_update_state() void {
         .main_menu => {
             process_menu_hover_clicks();
         },
-        .puzzles_handcrafted => {
+        .puzzles => {
             process_puzzle_hover_clicks();
             update_current_grid_solved();
         },
@@ -600,7 +596,7 @@ fn process_menu_hover_clicks() void {
     
     
     if (left_mouse_down and ! left_mouse_down_last_frame and start_game_button.hovering) {
-        gamemode = .puzzles_handcrafted;
+        gamemode = .puzzles;
     }
 
     if (left_mouse_down and ! left_mouse_down_last_frame and instructions_button.hovering) {
@@ -705,13 +701,21 @@ fn render() void {
     rl.BeginDrawing();
     defer rl.EndDrawing();
 
-    rl.ClearBackground(rlc(default_background_color));
+    // Set the background color to YELLOW if the grid has been solved AND
+    // the game mode is puzzles.
+    const solved = handcrafted_levels_solved_status[current_handcrafted_level_index] and gamemode == .puzzles;
+    var background_color = default_background_color;
+    if (solved) {
+        background_color = YELLOW;
+    }
+
+    rl.ClearBackground(rlc(background_color));
 
     switch(gamemode) {
         .main_menu => {
             render_menu();  
         },
-        .puzzles_handcrafted => {
+        .puzzles => {
             render_puzzle();
         },
         .instructions_screen => {
@@ -777,13 +781,10 @@ fn render_puzzle() void {
     shapes.draw_centered_rect(grid_pos, background_length, background_length, grid_fill_color);
 
     // Draw grid bars.
-    // @temp, presumably bc this is how we're currently indicating  that something is solved !
-    const solved = handcrafted_levels_solved_status[current_handcrafted_level_index];
-    const bar_color = if (solved) YELLOW else grid_bar_color;
     for (0..5) |i| {
         const offset = @as(f32, @floatFromInt(i)) - 2;
-        shapes.draw_centered_rect(grid_pos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, bar_color);
-        shapes.draw_centered_rect(grid_pos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, bar_color);
+        shapes.draw_centered_rect(grid_pos + Vec2{offset * (tile_length + bar_thickness), 0}, bar_thickness, total_length, grid_bar_color);
+        shapes.draw_centered_rect(grid_pos + Vec2{0, offset * (tile_length + bar_thickness)}, total_length, bar_thickness, grid_bar_color);
     }
 
     // Draw the tiles in the grid.
@@ -854,13 +855,14 @@ fn draw_tile(tile : Tile, pos : Vec2) void {
     const length = grid_geometry.tile_length;
     const border_thickness = 10;
     const border_length = length + border_thickness;
-    
+
     const background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
     const texture_index : usize = std.math.absCast(tile) - 1;
     const texture_ptr = &numeral_textures[texture_index];
 
-    shapes.draw_centered_rect(pos, border_length, border_length, BLACK);
+    shapes.draw_centered_rect(pos, border_length, border_length, grid_bar_color);
     shapes.draw_centered_rect(pos, length, length, background_color);
+
     draw_texture(texture_ptr, pos, length);
 }
 
