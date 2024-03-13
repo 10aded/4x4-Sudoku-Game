@@ -1,0 +1,9 @@
+The images used in this project have been released under the public domain. (Either explicitly, or because the are simple enough that copywrite does not apply to them.)
+
+The mouse photo is by Peter Astbury, and is available at:
+
+    https://commons.wikimedia.org/wiki/File:Generic_computer_mouse_with_scrollwheel.jpg
+
+The cursor image is by Lordalpha1, and is available at:
+
+    https://commons.wikimedia.org/wiki/File:Mouse-cursor-hand-pointer.svg
