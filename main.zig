@@ -119,6 +119,7 @@ const LIGHTBLUE  = Color{0xc0, 0xd1, 0xcc, 255};
 const GRAYBLUE   = Color{0x65, 0x73, 0x8c, 255};
 const BLACK2     = Color{0x17, 0x0e, 0x19, 255};
 const BROWN      = Color{0x77, 0x5c, 0x4f, 255};
+const YELLOW2    = Color{0xf5, 0xcf, 0x13, 255};
 
 //const BLACK     = rlc(  0,   0,   0, 255);
 const BLACK     = Color{  0,   0,   0, 255};
@@ -163,6 +164,7 @@ const tile_movable_background_color = GRAYBLUE;
 const tile_option_background = LIGHTBLUE ;
 
 const default_background_color = LIGHTGREEN;
+const win_color = YELLOW2;               
 
 // Button Colors
 const menu_button_background_def_color        = LIGHTBLUE;
@@ -701,12 +703,12 @@ fn render() void {
     rl.BeginDrawing();
     defer rl.EndDrawing();
 
-    // Set the background color to YELLOW if the grid has been solved AND
+    // Set the background color to win_color if the grid has been solved AND
     // the game mode is puzzles.
     const solved = handcrafted_levels_solved_status[current_handcrafted_level_index] and gamemode == .puzzles;
     var background_color = default_background_color;
     if (solved) {
-        background_color = YELLOW;
+        background_color = win_color;
     }
 
     rl.ClearBackground(rlc(background_color));
@@ -744,8 +746,8 @@ fn render_instructions() void {
     draw_texture(&mouse_texture, mouse2pos, mouse_height);
     // Draw some annuli around the mouse buttons.
     const radius1 = instructions_geometry.disk_radius;
-    shapes.draw_centered_circle(instructions_geometry.disk1_pos, radius1, RED);
-    shapes.draw_centered_circle(instructions_geometry.disk2_pos, radius1, RED);
+    shapes.draw_centered_circle(instructions_geometry.disk1_pos, radius1, win_color);
+    shapes.draw_centered_circle(instructions_geometry.disk2_pos, radius1, win_color);
     // Draw the instructions images.
     const left_click_pos = Vec2{0.75 * screen_width, mouse1pos[1]};
     const right_click_pos = Vec2{0.75 * screen_width, mouse2pos[1]};
@@ -810,9 +812,11 @@ fn render_puzzle() void {
     }
 
     // Draw FPS.
+    // Copypasta from rl.DrawFPS, but uses a default ugly color so we're changing that.
     const fps_posx : c_int = @intFromFloat(screen_width - 100);
     const fps_posy : c_int = @intFromFloat(screen_hidth - 100);
-    rl.DrawFPS(fps_posx, fps_posy);
+    const fps : c_int = rl.GetFPS();
+    rl.DrawText(rl.TextFormat("%2i FPS", fps), fps_posx, fps_posy, 20, rlc(grid_bar_color));
 }
 
 fn rlc(color : Color) rl.Color {
