@@ -26,7 +26,6 @@
 
 
 // TODO LIST:
-// *  Create some levels!!!
 // *  Choose a niceish color theme.
 
 const std    = @import("std");
@@ -114,6 +113,17 @@ const dprint  = std.debug.print;
 
 // Constants
 // UI Colors
+
+// Colors taken from the "Steam Lords Palette" at:
+// https://lospec.com/palette-list/steam-lords
+
+const LIGHTGREEN = Color{0x47, 0x77, 0x54, 255};
+const DARKGREEN  = Color{0x21, 0x3b, 0x25, 255};
+const LIGHTBLUE  = Color{0xc0, 0xd1, 0xcc, 255};
+const GRAYBLUE   = Color{0x65, 0x73, 0x8c, 255};
+const BLACK2     = Color{0x17, 0x0e, 0x19, 255};
+const BROWN      = Color{0x77, 0x5c, 0x4f, 255};
+
 //const BLACK     = rlc(  0,   0,   0, 255);
 const BLACK     = Color{  0,   0,   0, 255};
 const DARKGRAY  = Color{ 40,  40,  40, 255};
@@ -148,36 +158,38 @@ var tile_dragging_index : usize = 0;
 var mouse_to_tile_dragging_vec  = Vec2{0,0};
 
 // Colors
-const grid_fill_color = LIGHTGRAY;
-const grid_bar_color  = BLACK;
+const grid_fill_color = LIGHTBLUE;
+const grid_bar_color  = BLACK2;
 
-const tile_fixed_background_color   = grid_fill_color;
-const tile_movable_background_color = MIDGRAY;
+const tile_fixed_background_color   = LIGHTBLUE;
+const tile_movable_background_color = GRAYBLUE;
 
-const tile_option_background = LIGHTGRAY;
+const tile_option_background = LIGHTBLUE ;
 
-const def_background_color = DARKGRAY;
+const default_background_color = LIGHTGREEN;
 
 // Button Colors
-const menu_button_background_def_color        = LIGHTGRAY;
-const menu_button_detail_def_color            = BLACK;
-const menu_button_background_hover_color      = YELLOW;
-const menu_button_detail_hover_color          = BLACK;
+const menu_button_background_def_color        = LIGHTBLUE;
+const menu_button_detail_def_color            = BLACK2;
+const menu_button_background_hover_color      = GRAYBLUE;
+const menu_button_detail_hover_color          = BLACK2;
 
-const arrow_button_background_def_color       = LIGHTGRAY;
-const arrow_button_detail_def_color           = DARKGRAY;
-const arrow_button_background_hover_color     = LIGHTGRAY;
-const arrow_button_detail_hover_color         = YELLOW;
+const arrow_button_background_def_color       = LIGHTBLUE;
+const arrow_button_detail_def_color           = DARKGREEN;
+const arrow_button_background_hover_color     = LIGHTBLUE;
+const arrow_button_detail_hover_color         = BROWN;
 
-const menu_return_button_background_def_color = LIGHTGRAY;
-const menu_return_button_detail_def_color     = DARKGRAY;
-const menu_return_button_background_hov_color = LIGHTGRAY;
-const menu_return_button_detail_hov_color     = YELLOW;
+const menu_return_button_background_def_color = LIGHTBLUE;
+const menu_return_button_detail_def_color     = DARKGREEN;
+const menu_return_button_background_hov_color = LIGHTBLUE;
+const menu_return_button_detail_hov_color     = BROWN;
 
-const reset_button_background_def_color  = LIGHTGRAY;
-const reset_button_detail_def_color      = DARKGRAY;
-const reset_button_background_hov_color  = LIGHTGRAY;
-const reset_button_detail_hov_color      = YELLOW;
+const reset_button_background_def_color  = LIGHTBLUE;
+const reset_button_detail_def_color      = DARKGREEN;
+const reset_button_background_hov_color  = LIGHTBLUE;
+const reset_button_detail_hov_color      = BROWN;
+
+const numeral_color = BLACK2;
 
 // Textures
 var numeral_textures : [4] rl.Texture2D = undefined;
@@ -350,14 +362,14 @@ pub fn main() anyerror!void {
     // do += 5.
     // In the bitmap, the background pixels are BLACK, the numeral pixels are WHITE,
     // so below we set:
-    //     the numeral pixels to:    BLACK,
+    //     the numeral pixels to:    numeral_color
     //     the background pixels to: TRANSPARENT.
     
     for (0..4) |numeral_i| {
         for (0..20) |yi| {
             for (0..10) |xi| {
                 const pixel_color = bitmap_1234_pixels[yi * bitmap_1234_width + xi + 10 * numeral_i];
-                const color = if (pixel_color[0] == 255) BLACK else TRANSPARENT;
+                const color = if (pixel_color[0] == 255) numeral_color else TRANSPARENT;
                 rl.ImageDrawPixel(&numeral_images[numeral_i], @intCast(xi + 5), @intCast(yi), rlc(color)); 
             }
         }
@@ -371,7 +383,7 @@ pub fn main() anyerror!void {
     for (0..text_start_game_width) |xi| {
         for (0..text_start_game_height) |yi| {
             const pixel_color = text_start_game_pixels[yi * text_start_game_width + xi];
-            const color = if (pixel_color[0] == 255) BLACK else TRANSPARENT;
+            const color = if (pixel_color[0] == 255) numeral_color else TRANSPARENT;
             rl.ImageDrawPixel(&start_game_image, @intCast(xi), @intCast(yi), rlc(color)); 
         }
     }
@@ -379,7 +391,7 @@ pub fn main() anyerror!void {
     for (0..text_instructions_width) |xi| {
         for (0..text_instructions_height) |yi| {
             const pixel_color = text_instructions_pixels[yi * text_instructions_width + xi];
-            const color = if (pixel_color[0] == 255) BLACK else TRANSPARENT;
+            const color = if (pixel_color[0] == 255) numeral_color else TRANSPARENT;
             rl.ImageDrawPixel(&instructions_image, @intCast(xi), @intCast(yi), rlc(color)); 
         }
     }
@@ -693,7 +705,7 @@ fn render() void {
     rl.BeginDrawing();
     defer rl.EndDrawing();
 
-    rl.ClearBackground(rlc(def_background_color));
+    rl.ClearBackground(rlc(default_background_color));
 
     switch(gamemode) {
         .main_menu => {
