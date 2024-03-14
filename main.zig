@@ -535,7 +535,7 @@ fn calculate_geometry() void {
 }
 
 fn process_input_update_state() void {
-    // Mouse input processing.
+    // Update mouse position.
     const rl_mouse_pos = rl.GetMousePosition();
     mouse_pos = Vec2 { rl_mouse_pos.x, rl_mouse_pos.y};
 
@@ -546,34 +546,21 @@ fn process_input_update_state() void {
     right_mouse_down = rl.IsMouseButtonDown(rl.MOUSE_BUTTON_RIGHT);
     defer right_mouse_down_last_frame = right_mouse_down;
 
-    // Do hover / click logic for the type of screen that the current frame is on.
+    // Do the appropriate mouse hover and click logic for the current screen.
     switch(gamemode) {
-        .main_menu => {
-            process_menu_hover_clicks();
-        },
-        .puzzles => {
+        .main_menu => process_menu_hover_clicks(),
+        .puzzles   => {
             process_puzzle_hover_clicks();
             update_current_grid_solved();
         },
-        .instructions_screen => {
-            process_instructions_hover_clicks();
-        },
-    }
-}
-
-fn process_instructions_hover_clicks() void {
-    button.set_hover_status(mouse_pos, &menu_return_button);
-
-    if (left_mouse_down and ! left_mouse_down_last_frame and menu_return_button.hovering) {
-        gamemode = .main_menu;
+        .instructions_screen => process_instructions_hover_clicks(),
     }
 }
 
 fn process_menu_hover_clicks() void {
-    // Determine whether the menu buttons have been hovered / clicked.
+    // Determine whether the "START GAME" and "INSTRUCTIONS" buttons have been hovered / clicked.
     button.set_hover_status(mouse_pos, &start_game_button);
     button.set_hover_status(mouse_pos, &instructions_button);
-    
     
     if (left_mouse_down and ! left_mouse_down_last_frame and start_game_button.hovering) {
         gamemode = .puzzles;
@@ -583,24 +570,21 @@ fn process_menu_hover_clicks() void {
         gamemode = .instructions_screen;
     }
 }
+
+fn process_instructions_hover_clicks() void {
+    // The only button on this screen is the menu return button, so the logic is simple.
+    button.set_hover_status(mouse_pos, &menu_return_button);
+
+    if (left_mouse_down and ! left_mouse_down_last_frame and menu_return_button.hovering) {
+        gamemode = .main_menu;
+    }
+}
  
 fn process_puzzle_hover_clicks() void {
-    // @maybe Add in animation when the mouse is over a tile that can be moved.
-    // Determine whether the mouse is over a tile option.
-//    const tl = grid_geometry.tile_length;
     const grid           = &current_levels[current_level_index];
     const grid_positions = &grid_geometry.grid_tile_positions;
     
-    // Determine whether a tile option has been clicked.
-    if (left_mouse_down and ! left_mouse_down_last_frame) {
-        for (tile_options_geometry.tile_positions, 0..) |pos, i| {
-            if (is_tile_hovered(mouse_pos, pos)) {
-                tile_dragging_index = i + 1;
-                mouse_to_tile_dragging_vec = pos - mouse_pos;
-            }
-        }
-    }
-    // Determine whether a clickable grid tile has been left clicked.
+    // Determine whether a clickable grid tile has been left-clicked.
     if (left_mouse_down and ! left_mouse_down_last_frame) {
         for (grid_positions, 0..) |tpos, i| {
             if (is_tile_hovered(mouse_pos, tpos) and grid[i] < 0) {
@@ -613,7 +597,7 @@ fn process_puzzle_hover_clicks() void {
             }
         }
     }
-
+    
     // Determine whether a clickable grid tile has been right clicked.
     if (right_mouse_down and ! right_mouse_down_last_frame) {
         for (grid_positions, 0..) |tpos, i| {
@@ -625,7 +609,17 @@ fn process_puzzle_hover_clicks() void {
         }
     }
     
-    // if click released, do dragged tile logic.
+    // Determine whether a tile option has been left-clicked.
+    if (left_mouse_down and ! left_mouse_down_last_frame) {
+        for (tile_options_geometry.tile_positions, 0..) |pos, i| {
+            if (is_tile_hovered(mouse_pos, pos)) {
+                tile_dragging_index = i + 1;
+                mouse_to_tile_dragging_vec = pos - mouse_pos;
+            }
+        }
+    }
+    
+    // If left-click has been released, do dragged tile logic.
     if (! left_mouse_down and left_mouse_down_last_frame) {
         defer tile_dragging_index = 0;
         // Determine if the dragged tile pos is in grid.
@@ -639,14 +633,14 @@ fn process_puzzle_hover_clicks() void {
         }
     }
 
-    // Determine whether the mouse is hovering on either of the pbuttons,
-    // provided the arrows are getting drawn.
+    // Determine whether the mouse is hovering on the buttons, 
+    // (assuming the button is getting drawn in the first place).
     button.set_hover_status(mouse_pos, &menu_return_button);
     button.set_hover_status(mouse_pos, &reset_button);
     button.set_hover_status(mouse_pos, &left_arrow_button);
     button.set_hover_status(mouse_pos, &right_arrow_button);
     
-    // Left click on menu return button moves to menu.
+    // Left click on menu return button goes to menu.
     if (left_mouse_down and ! left_mouse_down_last_frame and menu_return_button.hovering) {
         gamemode = .main_menu;
     }
@@ -670,13 +664,6 @@ fn process_puzzle_hover_clicks() void {
     }
 }
 
-fn update_current_grid_solved() void {
-    const grid = current_levels[current_level_index];
-
-    const grid_solved = logic.is_grid_solved(grid);
-    levels_solved_status[current_level_index] = grid_solved;
-}
-
 fn render() void {
     rl.BeginDrawing();
     defer rl.EndDrawing();
@@ -684,24 +671,16 @@ fn render() void {
     // Set the background color to win_color if the grid has been solved AND
     // the game mode is puzzles.
     const solved = levels_solved_status[current_level_index] and gamemode == .puzzles;
-    var background_color = default_background_color;
-    if (solved) {
-        background_color = win_color;
-    }
+    var background_color = if (solved) win_color else default_background_color;
 
     rl.ClearBackground(rlc(background_color));
 
     switch(gamemode) {
-        .main_menu => {
-            render_menu();  
-        },
-        .puzzles => {
-            render_puzzle();
-        },
-        .instructions_screen => {
-            render_instructions();
-        },
+        .main_menu           => render_menu(),  
+        .puzzles             => render_puzzle(),
+        .instructions_screen => render_instructions(),
     }
+    draw_fps();
 }
 
 fn render_menu() void {
@@ -715,30 +694,33 @@ fn render_menu() void {
 }
 
 fn render_instructions() void {
-    // Draw the mouse, twice!
     const mouse_height = instructions_geometry.mouse_height;
-    const mouse1pos = instructions_geometry.mouse1_pos;
-    const mouse2pos = instructions_geometry.mouse2_pos;
+    const mouse1pos   = instructions_geometry.mouse1_pos;
+    const mouse2pos   = instructions_geometry.mouse2_pos;
     const instructions_height = 0.3 * mouse_height;
+    // Render menu button.
+    button.render_menu_button(menu_return_button);
+    
+    // Draw the mouse, twice!    
     draw_texture(&mouse_texture, mouse1pos, mouse_height);
     draw_texture(&mouse_texture, mouse2pos, mouse_height);
-    // Draw some annuli around the mouse buttons.
-    const radius1 = instructions_geometry.disk_radius;
-    shapes.draw_centered_circle(instructions_geometry.disk1_pos, radius1, win_color);
-    shapes.draw_centered_circle(instructions_geometry.disk2_pos, radius1, win_color);
+    
+    // Draw disks on the left- and right-mouse buttons.
+    const radius = instructions_geometry.disk_radius;
+    const disk_color = win_color;
+    shapes.draw_centered_circle(instructions_geometry.disk1_pos, radius, disk_color);
+    shapes.draw_centered_circle(instructions_geometry.disk2_pos, radius, disk_color);
+
     // Draw the instructions images.
     const left_click_pos = Vec2{0.75 * screen_width, mouse1pos[1]};
     const right_click_pos = Vec2{0.75 * screen_width, mouse2pos[1]};
     draw_texture(&left_click_texture, left_click_pos, instructions_height);
     draw_texture(&right_click_texture, right_click_pos, instructions_height);
-
-    // Render menu button.
-    button.render_menu_button(menu_return_button);
 }
 
 fn render_puzzle() void {
-    const grid = current_levels[current_level_index];
-    const grid_pos             = grid_geometry.grid_pos;
+    const grid                = current_levels[current_level_index];
+    const grid_pos            = grid_geometry.grid_pos;
     const tile_length         = grid_geometry.tile_length;
     const bar_thickness       = grid_geometry.bar_thickness;
     const total_length        = grid_geometry.total_length;
@@ -788,13 +770,44 @@ fn render_puzzle() void {
     if (tile_dragging_index != 0) {
         draw_tile(-1 * @as(i8, @intCast(tile_dragging_index)), mouse_to_tile_dragging_vec + mouse_pos);
     }
+}
 
-    // Draw FPS.
-    // Copypasta from rl.DrawFPS, but uses a default ugly color so we're changing that.
+// Draw tiles, both those that are fixed and movable.
+// Fixed / moveable tiles have different background colors.
+// These specific color choices are globals. 
+fn draw_tile(tile : Tile, pos : Vec2) void {
+    // Empty tiles should not get drawn!
+    if (tile == 0) return;
+    
+    const length = grid_geometry.tile_length;
+    const border_thickness = 10;
+    const border_length = length + border_thickness;
+
+    const background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
+    const texture_index : usize = std.math.absCast(tile) - 1;
+    const texture_ptr = &numeral_textures[texture_index];
+
+    shapes.draw_centered_rect(pos, border_length, border_length, grid_bar_color);
+    shapes.draw_centered_rect(pos, length, length, background_color);
+
+    draw_texture(texture_ptr, pos, length);
+}
+
+fn draw_fps() void {
+    // Note: this is modified from rl.DrawFPS, but since rl.DrawFPS
+    // uses an ugly color, we're doing our own thing.
     const fps_posx : c_int = @intFromFloat(screen_width - 100);
     const fps_posy : c_int = @intFromFloat(screen_hidth - 100);
-    const fps : c_int = rl.GetFPS();
+    const fps      : c_int = rl.GetFPS();
+    
     rl.DrawText(rl.TextFormat("%2i FPS", fps), fps_posx, fps_posy, 20, rlc(grid_bar_color));
+}
+
+fn update_current_grid_solved() void {
+    const grid = current_levels[current_level_index];
+
+    const grid_solved = logic.is_grid_solved(grid);
+    levels_solved_status[current_level_index] = grid_solved;
 }
 
 fn rlc(color : Color) rl.Color {
@@ -825,27 +838,6 @@ fn vec2_to_rl(vec : Vec2) rl.Vector2 {
         .y = vec[1],
     };
     return dumb_rl_tl_vec2;
-}
-
-// Draw tiles, both those that are fixed and movable.
-// Fixed / moveable tiles have different background colors.
-// These specific color choices are globals. 
-fn draw_tile(tile : Tile, pos : Vec2) void {
-    // Empty tiles should not get drawn!
-    if (tile == 0) return;
-    
-    const length = grid_geometry.tile_length;
-    const border_thickness = 10;
-    const border_length = length + border_thickness;
-
-    const background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
-    const texture_index : usize = std.math.absCast(tile) - 1;
-    const texture_ptr = &numeral_textures[texture_index];
-
-    shapes.draw_centered_rect(pos, border_length, border_length, grid_bar_color);
-    shapes.draw_centered_rect(pos, length, length, background_color);
-
-    draw_texture(texture_ptr, pos, length);
 }
 
 fn is_tile_hovered(cursor_pos : Vec2, tile_pos : Vec2) bool {
