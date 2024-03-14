@@ -551,7 +551,8 @@ fn process_input_update_state() void {
         .main_menu => process_menu_hover_clicks(),
         .puzzles   => {
             process_puzzle_hover_clicks();
-            update_current_grid_solved();
+            const solved = logic.is_grid_solved(current_levels[current_level_index]);
+            levels_solved_status[current_level_index] = solved;
         },
         .instructions_screen => process_instructions_hover_clicks(),
     }
@@ -772,46 +773,21 @@ fn render_puzzle() void {
     }
 }
 
-// Draw tiles, both those that are fixed and movable.
-// Fixed / moveable tiles have different background colors.
-// These specific color choices are globals. 
 fn draw_tile(tile : Tile, pos : Vec2) void {
     // Empty tiles should not get drawn!
     if (tile == 0) return;
     
-    const length = grid_geometry.tile_length;
-    const border_thickness = 10;
-    const border_length = length + border_thickness;
+    const length           = grid_geometry.tile_length;
+    const border_width = @max(0.05 * length, 5);
 
     const background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
-    const texture_index : usize = std.math.absCast(tile) - 1;
-    const texture_ptr = &numeral_textures[texture_index];
+    const texture_index : usize = std.math.absCast(tile) - 1; // @abs() not available in Zig 0.11.0
+    const texture_ptr  = &numeral_textures[texture_index];
 
-    shapes.draw_centered_rect(pos, border_length, border_length, grid_bar_color);
-    shapes.draw_centered_rect(pos, length, length, background_color);
+    shapes.draw_centered_rect(pos, length + border_width, length + border_width, grid_bar_color);
+    shapes.draw_centered_rect(pos, length,                length,                background_color);
 
     draw_texture(texture_ptr, pos, length);
-}
-
-fn draw_fps() void {
-    // Note: this is modified from rl.DrawFPS, but since rl.DrawFPS
-    // uses an ugly color, we're doing our own thing.
-    const fps_posx : c_int = @intFromFloat(screen_width - 100);
-    const fps_posy : c_int = @intFromFloat(screen_hidth - 100);
-    const fps      : c_int = rl.GetFPS();
-    
-    rl.DrawText(rl.TextFormat("%2i FPS", fps), fps_posx, fps_posy, 20, rlc(grid_bar_color));
-}
-
-fn update_current_grid_solved() void {
-    const grid = current_levels[current_level_index];
-
-    const grid_solved = logic.is_grid_solved(grid);
-    levels_solved_status[current_level_index] = grid_solved;
-}
-
-fn rlc(color : Color) rl.Color {
-    return rl.Color{.r = color[0], .g = color[1], .b = color[2], .a = color[3]};
 }
 
 fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) void {
@@ -832,6 +808,22 @@ fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) voi
     rl.DrawTextureEx(texturep.*, dumb_rl_tl_vec2, 0, scaling_ratio, rl.WHITE);
 }
 
+fn draw_fps() void {
+    // Note: this is modified from rl.DrawFPS, but since rl.DrawFPS
+    // uses an ugly color, we're doing our own thing.
+    const fps_posx : c_int = @intFromFloat(screen_width - 100);
+    const fps_posy : c_int = @intFromFloat(screen_hidth - 100);
+    const fps      : c_int = rl.GetFPS();
+    
+    rl.DrawText(rl.TextFormat("%2i FPS", fps), fps_posx, fps_posy, 20, rlc(grid_bar_color));
+}
+
+// Convert our color data type to raylib's color data type.
+fn rlc(color : Color) rl.Color {
+    return rl.Color{.r = color[0], .g = color[1], .b = color[2], .a = color[3]};
+}
+
+// Convert our Vector data type to raylib's vector data type.
 fn vec2_to_rl(vec : Vec2) rl.Vector2 {
     const dumb_rl_tl_vec2 = rl.Vector2{
         .x = vec[0],
@@ -840,6 +832,7 @@ fn vec2_to_rl(vec : Vec2) rl.Vector2 {
     return dumb_rl_tl_vec2;
 }
 
+// Check if some position is over a tile.
 fn is_tile_hovered(cursor_pos : Vec2, tile_pos : Vec2) bool {
     const tl = grid_geometry.tile_length;
     return @fabs(cursor_pos[0] - tile_pos[0]) < 0.5 * tl and @fabs(cursor_pos[1] - tile_pos[1]) < 0.5 * tl;
