@@ -1,13 +1,23 @@
+// The code in the file determines whether or not a given 4x4 Sudoku grid
+// has been solved.
+// This file contains some tests at the end, these can be run with the command
+//
+//     zig test grid-logic.zig
+//
+// The 'test' really contains 5 tests, although the Zig compiler should just output
+//
+//     "All 1 tests passed."
+
 const std = @import("std");
 
+// Recall that for positive n, the tiles n and -n represent
+// fixed and draggable tiles with numeral n respectively.
 const Tile = i8;
+
 const Grid = [16] Tile;
 
+// The main procedure that is called to check if a given puzzle has been solved.
 pub fn is_grid_solved(grid : Grid) bool {
-    // Recall that for positive n, the tiles n and -n represent
-    // fixed and draggable tiles with the number n respectively.
-    // Check to see whether or not the current grid represents a solved puzzle.
-
     // First check that the grid does not have an empty tile.
     var grid_full = true;
     for (grid) |tile| {
@@ -18,7 +28,7 @@ pub fn is_grid_solved(grid : Grid) bool {
         return false;
     }
 
-    // I.e. check to see that every row, column and 2x2 quadrant contains
+    // Check to see that every row, column and 2x2 quadrant contains
     // each of {1,2,3,4} exactly once.
     var cols_unique  = true;
     var rows_unique  = true;
@@ -53,7 +63,7 @@ pub fn is_grid_solved(grid : Grid) bool {
     return rows_unique and cols_unique and quads_unique;
 }
 
-// Tests to check that the Sudoku-testing logic works.
+// Tests to check that is_grid_solved is working as intended.
 
 const grid_correct_1 = Grid{1,2,3,4,
                             4,3,2,1,
