@@ -1,19 +1,26 @@
-const std = @import("std");
-
-// The (Zig-made!) image viewer at:
+// This file is just a custom .qoi image decoder; it doesn't encode .qoi images.
+// There are some tests at the end, these can be run with the command
+//
+//     zig test qoi.zig
+//
+// The output should be
+//
+//    "All 3 tests passed."
+//
+// An individual test can be run with (e.g.) the command
+//
+//    zig test --test-filter "RRRB decoder" .\qoi.zig
+//
+// While the .qoi image format is extremely simple, many image viewers (sadly)
+// do not support it. E.g. the standard Windows "Photos" app.
+//
+// Luckily, the Zig community has come to the rescue, and there is a Zig-made
+// .qoi image viewer at:
 // 
 // https://github.com/marler8997/image-viewer
-//
-// is significantly better (for real) than the "Photos" app since
-// it can actually render .qoi files AND allows arbitrary zoom.
 
+const std = @import("std");
 
-
-const RRRB_image = @embedFile("QOI-Tests/RRRB.qoi");
-const RRRBXRBBX_image = @embedFile("QOI-Tests/RRRBXRBBX.qoi");
-const three_by_four_image = @embedFile("QOI-Tests/3x4.qoi");
-
-const dprint  = std.debug.print;
 const dassert = std.debug.assert;
 
 const Pixel = [4] u8;
@@ -29,9 +36,8 @@ const Qoi_Header = struct {
 // Note: In Zig DEBUG builds, static memory that are set to undefined are 
 // filled with 0xaa s.
 
-pub fn comptime_header_parser( embedded_qoi_file : [] const u8) Qoi_Header {
-        // Parse the image header into the qoi_header struct.
-    const raw_image = embedded_qoi_file;
+pub fn comptime_header_parser( raw_image : [] const u8) Qoi_Header {
+    // Parse the image header into the qoi_header struct.
     const qoi_header  = Qoi_Header{
         .magic_bytes  = [4]u8{raw_image[0], raw_image[1], raw_image[2], raw_image[3]},
         .image_width  = std.mem.readIntSlice(u32, raw_image[4..8],  .Big), // (Thanks tw0st3p!)
@@ -47,12 +53,6 @@ pub fn comptime_header_parser( embedded_qoi_file : [] const u8) Qoi_Header {
     return qoi_header;
 }
 
-// const test_image_header = comptime_header_parser(test_image);
-// const test_image_width  = test_image_header.image_width;
-// const test_image_height = test_image_header.image_height;
-
-//var test_image_pixels : [test_image_header.image_width * test_image_header.image_height] Pixel = undefined;
-
 // In the enum below, the OP XYZ refers to QOI_OP_XYZ in the specification.
 const QOI_OPS = enum(u8) {
     RGB,
@@ -63,22 +63,26 @@ const QOI_OPS = enum(u8) {
     RUN,
 };
 
-// @decision: Should this procedure take in a pixel array that is a matrix
-// or a simple array... I feel like it should actually just be an array.
-// TODO: Change the args here so that we don't use u64!
-// @Maybe: Create a different 'layer' / calls to the header parser ???
+// @Future
+// Loading images as textures in Raylib, using this code, requires a lot of lines.
+// There should be an easier of setting up the stuff in this file to reduce overhead.
+// Figure this out!
+
 pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels : u64, pixel_array : *[number_of_pixels] Pixel ) void {
     // Per the specification,
-    // "The decoder and encoder start with {r: 0, g: 0, b: 0, a: 255} as the
-    //previous pixel value."
+    //     "The decoder and encoder start with {r: 0, g: 0, b: 0, a: 255} as the
+    //     previous pixel value."
     var current_pixel = Pixel{0,0,0,255};
-    
-    // @question: Does Zig zero-init arrays by default?
+
+    // Per the specification,
+    //     "A running array[64] (zero-initialized) of previously seen pixel
+    //     values is maintained by the encoder and decoder."
     var previously_seen_pixels : [64] Pixel = undefined;
+    // @question: Where exactly in the specification does the line below come from.
     previously_seen_pixels[0] = Pixel{0,0,0,0};
 
     var current_byte_index  : usize = 14;
-    var current_byte : u8   = undefined;
+    var current_byte        : u8 = undefined;
     var current_pixel_index : usize = 0;
 
     var current_qoi_op : QOI_OPS = undefined;
@@ -212,13 +216,12 @@ pub fn qoi_to_pixels( embedded_qoi_file : [] const u8, comptime number_of_pixels
                 previously_seen_pixels[hash] = current_pixel;
             },
         }
-        
-
-//        dprint("{any}\n", .{current_pixel});        // @debug
     }
-//    dprint("Current OP: {any}\n", .{current_qoi_op}); // @debug
 }
 
+// Per the specification,
+//     "The hash function for the index is:
+//     index_position = (r * 3 + g * 5 + b * 7 + a * 11) % 64"
 fn pixel_hash(pixel : Pixel) u6 {
     const r = pixel[0];
     const g = pixel[1];
@@ -230,27 +233,12 @@ fn pixel_hash(pixel : Pixel) u6 {
     return hash;
 }
 
-pub fn main() void {
+// Test images.
+const RRRB_image          = @embedFile("QOI-Tests/RRRB.qoi");
+const RRRBXRBBX_image     = @embedFile("QOI-Tests/RRRBXRBBX.qoi");
+const three_by_four_image = @embedFile("QOI-Tests/3x4.qoi");
 
-
-    
-    // TODO: Turn the following into a Zig test
-    // Suggestion (tw0st3p:
-    // test "test name" { std.testing.expectEqual(@as(u8, 69, foo())) };
-    //    const test_pixel_hash = pixel_hash(Pixel{1,1,1,1});
-    // Expect: 22
-//    const test_pixel_hash = pixel_hash(Pixel{100,0,0,0});
-    // Expect: 44
-//    dprint("PH: {d}\n", .{test_pixel_hash}); // @debug
-
-
-
-    // qoi_to_pixels(test_image, @as(u64, test_image_width) * @as(u64, test_image_height), &test_image_pixels);
-
-    // dprint("Header: {any}\n", .{test_image_header}); // @debug
-    // dprint("Pixels: {any}\n", .{test_image_pixels}); // @debug
-}
-
+// Tests for the decoder.
 test "RRRB decoder" {
     const RRRB_header = comptime comptime_header_parser(RRRB_image);
     const width  = @as(u64, RRRB_header.image_width);
@@ -264,7 +252,6 @@ test "RRRB decoder" {
                                        .{0,   0, 255, 255}};
 
     try std.testing.expectEqual(expected_pixels, RRRB_pixels);
-    //    dprint("Pixels: {any}\n", .{RRRB_pixels}); // @debug
 }
 
 test "RRRBXRBBX decoder" {
