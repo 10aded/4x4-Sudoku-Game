@@ -1,6 +1,7 @@
-// TODO: Write summary of 4 x 4 Sudoku game
+// This is a simple game of some 4x4 Sudoku puzzles. Solving all of the game's
+// 11 puzzles should take less than 10 minutes.
 //
-// Created by 10aded Jan 2024 --- ???
+// Created by 10aded Jan 2024 --- Mar 2024.
 //
 // This project was compiled using the Zig compiler (version 0.11.0)
 // and built with the command:
@@ -37,24 +38,21 @@ const Vec2   = @Vector(2, f32);
 const Color = [4] u8;
 const Pixel = [4] u8;
 
-// Grid Tile Possiblities
-// Note: A zero    (0) denotes an empty tile
-// Positive number (+) denotes a fixed tile
-// Negative number (-) denotes a selected tile.
+// In the game, tiles are just represented by a i8, where
+// the sign represents whether or not the tile is movable.
+// Specifically:
+//     A zero          (0) denotes an empty tile
+//     Positive number (+) denotes a fixed tile
+//     Negative number (-) denotes a selected tile.
 const Tile = i8;
 
 const Grid = [16] Tile;
 
 // The level data has type [NUMBER_OF_LEVELS] Grid.
-const handcrafted_levels           = parser.parse_levels();
-const NUMBER_OF_HANDCRAFTED_LEVELS = handcrafted_levels.len;
+const raw_levels = parser.parse_levels();
+const NUMBER_OF_LEVELS   = raw_levels.len;
 
-// const grid1 = Grid{1,0,3,4,
-//                    4,3,2,1,
-//                    2,1,4,3,
-//                    3,4,1,2};
-
-const GameMode =  enum(u8) {
+const GameMode = enum(u8) {
     main_menu,
     instructions_screen,
     puzzles,
@@ -62,8 +60,8 @@ const GameMode =  enum(u8) {
 
 const Button = button.Button;
 
-// Make space to decode the "1234", "START GAME", and "INSTRUCTIONS"
-// bitmaps at comptime.
+// Since we know the sizes of the images used in the game at comptime,
+// we create a fixed-size buffers in which to decode the images at runtime.
 //
 // The "1234" bitmap was created with the tool BMFont, freely available at:
 //
@@ -74,52 +72,49 @@ const Button = button.Button;
 //     ./Text-1234/bitmap-options-8514.bmfc
 
 const bitmap_1234       = @embedFile("Text-1234/1234-bitmap-8514.qoi");
-const text_START_GAME   = @embedFile("Text-1234/text-start-game.qoi");
-const text_INSTRUCTIONS = @embedFile("Text-1234/text-instructions.qoi");
+const START_GAME_qoi    = @embedFile("Text-1234/text-start-game.qoi");
+const INSTRUCTIONS_qoi  = @embedFile("Text-1234/text-instructions.qoi");
 const mouse_qoi         = @embedFile("Images/mouse.qoi");
 const left_click_qoi    = @embedFile("Images/left-click-image.qoi");
-const right_click_qoi    = @embedFile("Images/right-click-image.qoi");
+const right_click_qoi   = @embedFile("Images/right-click-image.qoi");
 
-const bitmap_1234_header = qoi.comptime_header_parser(bitmap_1234);
-const bitmap_1234_width  = @as(u64, bitmap_1234_header.image_width);
-const bitmap_1234_height = @as(u64, bitmap_1234_header.image_height);
+const bitmap_1234_header       = qoi.comptime_header_parser(bitmap_1234);
+const bitmap_1234_width        = @as(u64, bitmap_1234_header.image_width);
+const bitmap_1234_height       = @as(u64, bitmap_1234_header.image_height);
 
-const text_start_game_header = qoi.comptime_header_parser(text_START_GAME);
-const text_start_game_width  = @as(u64, text_start_game_header.image_width);
-const text_start_game_height = @as(u64, text_start_game_header.image_height);
+const text_start_game_header   = qoi.comptime_header_parser(START_GAME_qoi);
+const text_start_game_width    = @as(u64, text_start_game_header.image_width);
+const text_start_game_height   = @as(u64, text_start_game_header.image_height);
 
-const text_instructions_header = qoi.comptime_header_parser(text_INSTRUCTIONS);
+const text_instructions_header = qoi.comptime_header_parser(INSTRUCTIONS_qoi);
 const text_instructions_width  = @as(u64, text_instructions_header.image_width);
 const text_instructions_height = @as(u64, text_instructions_header.image_height);
 
-const mouse_image_header = qoi.comptime_header_parser(mouse_qoi);
-const mouse_image_width  = @as(u64, mouse_image_header.image_width);
-const mouse_image_height = @as(u64, mouse_image_header.image_height);
+const mouse_image_header       = qoi.comptime_header_parser(mouse_qoi);
+const mouse_image_width        = @as(u64, mouse_image_header.image_width);
+const mouse_image_height       = @as(u64, mouse_image_header.image_height);
 
-const left_click_header  = qoi.comptime_header_parser(left_click_qoi);
-const left_click_width   = @as(u64, left_click_header.image_width);
-const left_click_height   = @as(u64, left_click_header.image_height);
+const left_click_header        = qoi.comptime_header_parser(left_click_qoi);
+const left_click_width         = @as(u64, left_click_header.image_width);
+const left_click_height        = @as(u64, left_click_header.image_height);
 
+const right_click_header       = qoi.comptime_header_parser(right_click_qoi);
+const right_click_width        = @as(u64, right_click_header.image_width);
+const right_click_height       = @as(u64, right_click_header.image_height);
 
-const right_click_header = qoi.comptime_header_parser(right_click_qoi);
-const right_click_width   = @as(u64, right_click_header.image_width);
-const right_click_height   = @as(u64, right_click_header.image_height);
-
-var bitmap_1234_pixels       : [bitmap_1234_width * bitmap_1234_height] Pixel = undefined;
-var text_start_game_pixels   : [text_start_game_width * text_start_game_height] Pixel = undefined;
+var bitmap_1234_pixels       : [bitmap_1234_width       * bitmap_1234_height]       Pixel = undefined;
+var text_start_game_pixels   : [text_start_game_width   * text_start_game_height]   Pixel = undefined;
 var text_instructions_pixels : [text_instructions_width * text_instructions_height] Pixel = undefined;
-var mouse_image_pixels       : [mouse_image_width * mouse_image_height] Pixel = undefined;
-var left_click_pixels        : [left_click_width  * left_click_height] Pixel = undefined;
-var right_click_pixels        : [right_click_width  * right_click_height] Pixel = undefined;
-
-// Misc. procedures.
+var mouse_image_pixels       : [mouse_image_width       * mouse_image_height]       Pixel = undefined;
+var left_click_pixels        : [left_click_width        * left_click_height]        Pixel = undefined;
+var right_click_pixels       : [right_click_width       * right_click_height]       Pixel = undefined;
 
 const dprint  = std.debug.print;
 
 // Constants
-// UI Colors
 
-// Colors taken from the "Steam Lords Palette" at:
+// UI Colors
+// Colors taken from the "Steam Lords Palette" by Slynyrd at:
 // https://lospec.com/palette-list/steam-lords
 
 const LIGHTGREEN = Color{0x47, 0x77, 0x54, 255};
@@ -130,34 +125,19 @@ const BLACK2     = Color{0x17, 0x0e, 0x19, 255};
 const BROWN      = Color{0x77, 0x5c, 0x4f, 255};
 const YELLOW2    = Color{0xf5, 0xcf, 0x13, 255};
 
-//const BLACK     = rlc(  0,   0,   0, 255);
-const BLACK     = Color{  0,   0,   0, 255};
-const DARKGRAY  = Color{ 40,  40,  40, 255};
-const MIDGRAY   = Color{100, 100, 100, 255};
-const LIGHTGRAY = Color{200, 200, 200, 255};
-const WHITE     = Color{255, 255, 255, 255};
-
-const RED       = Color{255,   0,   0, 255};
-const GREEN     = Color{  0, 255,   0, 255};
-const BLUE      = Color{  0,   0, 255, 255};
-const YELLOW    = Color{255, 255,   0, 255};
-const MAGENTA   = Color{255,   0, 255, 255};
-
-const TRANSPARENT = Color{0,0,0,0};
-
-const DEBUG  = MAGENTA;
+const DEBUG       = Color{255, 0, 255, 255};
+const TRANSPARENT = Color{0,   0,   0,   0};
 
 const initial_screen_hidth = 1080;
 const initial_screen_width = 1080 / 3 * 4;
 const WINDOW_TITLE = "4x4 Sudoku Game";
 
-// Globals
 // Game
 var gamemode : GameMode = undefined;
 
-var   current_handcrafted_levels       = handcrafted_levels;
-var   current_handcrafted_level_index : usize = 0;
-var   handcrafted_levels_solved_status = [1]bool{false} ** handcrafted_levels.len;
+var   current_levels       = raw_levels;
+var   current_level_index : usize = 0;
+var   levels_solved_status = [1]bool{false} ** raw_levels.len;
 
 // Tile manipulation
 var tile_dragging_index : usize = 0;
@@ -330,8 +310,8 @@ pub fn main() anyerror!void {
 
     // Load at runtime the 1234 bitmap, and the text .qoi files.
     qoi.qoi_to_pixels(bitmap_1234, bitmap_1234_width * bitmap_1234_height, &bitmap_1234_pixels);
-    qoi.qoi_to_pixels(text_START_GAME, text_start_game_width * text_start_game_height, &text_start_game_pixels);
-    qoi.qoi_to_pixels(text_INSTRUCTIONS, text_instructions_width * text_instructions_height, &text_instructions_pixels);
+    qoi.qoi_to_pixels(START_GAME_qoi, text_start_game_width * text_start_game_height, &text_start_game_pixels);
+    qoi.qoi_to_pixels(INSTRUCTIONS_qoi, text_instructions_width * text_instructions_height, &text_instructions_pixels);
     qoi.qoi_to_pixels(mouse_qoi, mouse_image_width * mouse_image_height, &mouse_image_pixels);
     qoi.qoi_to_pixels(left_click_qoi, left_click_width * left_click_height, &left_click_pixels);
     qoi.qoi_to_pixels(right_click_qoi, right_click_width * right_click_height, &right_click_pixels);
@@ -619,7 +599,7 @@ fn process_puzzle_hover_clicks() void {
     // @maybe Add in animation when the mouse is over a tile that can be moved.
     // Determine whether the mouse is over a tile option.
 //    const tl = grid_geometry.tile_length;
-    const grid           = &current_handcrafted_levels[current_handcrafted_level_index];
+    const grid           = &current_levels[current_level_index];
     const grid_positions = &grid_geometry.grid_tile_positions;
     
     // Determine whether a tile option has been clicked.
@@ -684,28 +664,28 @@ fn process_puzzle_hover_clicks() void {
     
     // Left click on left arrow moves to previous level.
     if (left_mouse_down and ! left_mouse_down_last_frame and left_arrow_button.hovering) {
-        if (current_handcrafted_level_index != 0) {
-            current_handcrafted_level_index -= 1;
+        if (current_level_index != 0) {
+            current_level_index -= 1;
         }
     }
     // Left click on right arrow move to next level.
     if (left_mouse_down and ! left_mouse_down_last_frame and right_arrow_button.hovering) {
-        if (current_handcrafted_level_index != NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
-            current_handcrafted_level_index += 1;
+        if (current_level_index != NUMBER_OF_LEVELS - 1) {
+            current_level_index += 1;
         }
     }
 
     // Left click on the reset button clears the grid of any movable tiles.
     if (left_mouse_down and ! left_mouse_down_last_frame and reset_button.hovering) {
-        current_handcrafted_levels[current_handcrafted_level_index] = handcrafted_levels[current_handcrafted_level_index];
+        current_levels[current_level_index] = raw_levels[current_level_index];
     }
 }
 
 fn update_current_grid_solved() void {
-    const grid = current_handcrafted_levels[current_handcrafted_level_index];
+    const grid = current_levels[current_level_index];
 
     const grid_solved = logic.is_grid_solved(grid);
-    handcrafted_levels_solved_status[current_handcrafted_level_index] = grid_solved;
+    levels_solved_status[current_level_index] = grid_solved;
 }
 
 fn render() void {
@@ -714,7 +694,7 @@ fn render() void {
 
     // Set the background color to win_color if the grid has been solved AND
     // the game mode is puzzles.
-    const solved = handcrafted_levels_solved_status[current_handcrafted_level_index] and gamemode == .puzzles;
+    const solved = levels_solved_status[current_level_index] and gamemode == .puzzles;
     var background_color = default_background_color;
     if (solved) {
         background_color = win_color;
@@ -768,7 +748,7 @@ fn render_instructions() void {
 }
 
 fn render_puzzle() void {
-    const grid = current_handcrafted_levels[current_handcrafted_level_index];
+    const grid = current_levels[current_level_index];
     const grid_pos             = grid_geometry.grid_pos;
     const tile_length         = grid_geometry.tile_length;
     const bar_thickness       = grid_geometry.bar_thickness;
@@ -780,10 +760,10 @@ fn render_puzzle() void {
     button.render_reset_button(reset_button);
 
     // Draw the left arrow button if not the first level, likewise for the last level.
-    if (current_handcrafted_level_index != 0) {
+    if (current_level_index != 0) {
         button.render_arrow_button(left_arrow_button, true);
     }
-    if (current_handcrafted_level_index != NUMBER_OF_HANDCRAFTED_LEVELS - 1) {
+    if (current_level_index != NUMBER_OF_LEVELS - 1) {
         button.render_arrow_button(right_arrow_button, false);
     }
     
@@ -847,7 +827,7 @@ fn draw_texture(texturep : *rl.Texture2D, center_pos : Vec2 , height : f32 ) voi
     };
 
     // The 3rd arg (0) is for rotation.
-    rl.DrawTextureEx(texturep.*, dumb_rl_tl_vec2, 0, scaling_ratio, rlc(WHITE));
+    rl.DrawTextureEx(texturep.*, dumb_rl_tl_vec2, 0, scaling_ratio, rl.WHITE);
 }
 
 fn vec2_to_rl(vec : Vec2) rl.Vector2 {
