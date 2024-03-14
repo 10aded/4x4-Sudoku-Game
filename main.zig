@@ -128,31 +128,18 @@ const YELLOW2    = Color{0xf5, 0xcf, 0x13, 255};
 const DEBUG       = Color{255, 0, 255, 255};
 const TRANSPARENT = Color{0,   0,   0,   0};
 
-const initial_screen_hidth = 1080;
-const initial_screen_width = 1080 / 3 * 4;
-const WINDOW_TITLE = "4x4 Sudoku Game";
+// UI Color Choices
+const default_background_color = LIGHTGREEN;
 
-// Game
-var gamemode : GameMode = undefined;
-
-var   current_levels       = raw_levels;
-var   current_level_index : usize = 0;
-var   levels_solved_status = [1]bool{false} ** raw_levels.len;
-
-// Tile manipulation
-var tile_dragging_index : usize = 0;
-var mouse_to_tile_dragging_vec  = Vec2{0,0};
-
-// Colors
-const grid_fill_color = LIGHTBLUE;
-const grid_bar_color  = BLACK2;
+const numeral_color = BLACK2;
 
 const tile_fixed_background_color   = LIGHTBLUE;
 const tile_movable_background_color = GRAYBLUE;
+const tile_option_background        = LIGHTBLUE ;
 
-const tile_option_background = LIGHTBLUE ;
+const grid_fill_color = LIGHTBLUE;
+const grid_bar_color  = BLACK2;
 
-const default_background_color = LIGHTGREEN;
 const win_color = YELLOW2;               
 
 // Button Colors
@@ -171,20 +158,28 @@ const menu_return_button_detail_def_color     = DARKGREEN;
 const menu_return_button_background_hov_color = LIGHTBLUE;
 const menu_return_button_detail_hov_color     = BROWN;
 
-const reset_button_background_def_color  = LIGHTBLUE;
-const reset_button_detail_def_color      = DARKGREEN;
-const reset_button_background_hov_color  = LIGHTBLUE;
-const reset_button_detail_hov_color      = BROWN;
+const reset_button_background_def_color       = LIGHTBLUE;
+const reset_button_detail_def_color           = DARKGREEN;
+const reset_button_background_hov_color       = LIGHTBLUE;
+const reset_button_detail_hov_color           = BROWN;
 
-const numeral_color = BLACK2;
+const initial_screen_hidth = 1080;
+const initial_screen_width = 1080 / 3 * 4;
+const WINDOW_TITLE = "4x4 Sudoku Game";
 
 // Textures
-var numeral_textures : [4] rl.Texture2D = undefined;
+var numeral_textures     : [4] rl.Texture2D = undefined;
 var start_game_texture   :     rl.Texture2D = undefined;
 var instructions_texture :     rl.Texture2D = undefined;
 var mouse_texture        :     rl.Texture2D = undefined;
 var left_click_texture   :     rl.Texture2D = undefined;
 var right_click_texture  :     rl.Texture2D = undefined;
+
+// Game
+var gamemode : GameMode = undefined;
+var current_levels       = raw_levels;
+var current_level_index : usize = 0;
+var levels_solved_status = [1]bool{false} ** raw_levels.len;
 
 // Mouse
 var left_mouse_down             : bool = undefined;
@@ -193,18 +188,49 @@ var right_mouse_down            : bool = undefined;
 var right_mouse_down_last_frame : bool = false;
 var mouse_pos                   : Vec2 = undefined;
 
+// Tile manipulation
+var tile_dragging_index : usize = 0;
+var mouse_to_tile_dragging_vec  = Vec2{0,0};
+
 // Screen geometry
 var screen_width : f32 = undefined;
 var screen_hidth : f32 = undefined;
 
 var minimum_screen_dim : f32 = undefined;
 
-// Buttons
+// Geometry structs.
+const Instructions_Geometry = struct{
+    mouse1_pos     : Vec2,
+    mouse2_pos     : Vec2,
+    mouse_height   : f32,
+    disk1_pos      : Vec2,
+    disk2_pos      : Vec2,
+    disk_radius    : f32,
+};
+    
+const Grid_Geometry = struct{
+    grid_pos            : Vec2,
+    tile_length         : f32,
+    bar_thickness       : f32,
+    total_length        : f32,
+    grid_tile_positions : [16] Vec2,
+};
+
+const Tile_Options_Geometry = struct{
+    background_rect_pos    : Vec2,
+    tile_positions : [4] Vec2,
+};
+
+var instructions_geometry : Instructions_Geometry = undefined;
+var grid_geometry         : Grid_Geometry = undefined;
+var tile_options_geometry : Tile_Options_Geometry = undefined;
+
+// Button defaults.
 const menu_button_defaults  = button.Button{
-    .hovering = false,
-    .width = 0,
-    .height = 0,
-    .pos = .{0,0},
+    .hovering   = false,
+    .width      = 0,
+    .height     = 0,
+    .pos        = .{0,0},
 	.color1_def = menu_button_background_def_color,
 	.color2_def = menu_button_detail_def_color,
 	.color1_hov = menu_button_background_hover_color,
@@ -212,10 +238,10 @@ const menu_button_defaults  = button.Button{
 };
 
 const arrow_button_defaults  = button.Button{
-    .hovering = false,
-    .width = 0,
-    .height = 0,
-    .pos = .{0,0},
+    .hovering   = false,
+    .width      = 0,
+    .height     = 0,
+    .pos        = .{0,0},
 	.color1_def = arrow_button_background_def_color,
 	.color2_def = arrow_button_detail_def_color,
 	.color1_hov = arrow_button_background_hover_color,
@@ -249,44 +275,13 @@ var start_game_button       = menu_button_defaults;
 var instructions_button     = menu_button_defaults;
 
 // Menu button geometry.
-var menu_text_height : f32 = undefined;
+var menu_text_height  : f32 = undefined;
 
 // Puzzle game buttons.
 var left_arrow_button       = arrow_button_defaults;
 var right_arrow_button      = arrow_button_defaults;
 var reset_button            = reset_button_defaults;
 var menu_return_button      = menu_return_button_defaults;
-
-
-// Instruction menu geometry.
-const Instructions_Geometry = struct{
-    mouse1_pos     : Vec2,
-    mouse2_pos     : Vec2,
-    mouse_height   : f32,
-    disk1_pos      : Vec2,
-    disk2_pos      : Vec2,
-    disk_radius    : f32,
-};
-
-var instructions_geometry : Instructions_Geometry = undefined;
-    
-// Grid geometry
-const Grid_Geometry = struct{
-    grid_pos            : Vec2,
-    tile_length         : f32,
-    bar_thickness       : f32,
-    total_length        : f32,
-    grid_tile_positions : [16] Vec2,
-};
-
-// Tile options geometry
-const Tile_Options_Geometry = struct{
-    background_rect_pos    : Vec2,
-    tile_positions : [4] Vec2,
-};
-
-var grid_geometry         : Grid_Geometry = undefined;
-var tile_options_geometry : Tile_Options_Geometry = undefined;
 
 pub fn main() anyerror!void {
 
