@@ -284,26 +284,20 @@ var reset_button            = reset_button_defaults;
 var menu_return_button      = menu_return_button_defaults;
 
 pub fn main() anyerror!void {
-
-    // Set up RNG.
-    // const seed  = std.time.milliTimestamp();
-    // prng        = std.rand.DefaultPrng.init(@intCast(seed));
-
     // Attempt to make GPU not burn to 100%.
     rl.SetConfigFlags(rl.FLAG_VSYNC_HINT);
     
-    // Spawn / setup raylib window.    
+    // Spawn and setup raylib window.    
     rl.InitWindow(initial_screen_width, initial_screen_hidth, WINDOW_TITLE);
     defer rl.CloseWindow();
 
     rl.SetWindowState(rl.FLAG_WINDOW_RESIZABLE);
     rl.SetTargetFPS(144);
 
-    //    const random = prng.random();
-
+    // Set the initial game screen to be the main menu.
     gamemode = GameMode.main_menu;
 
-    // Load at runtime the 1234 bitmap, and the text .qoi files.
+    // Decode the .qoi files at runtime into the fixed-buffers previously set up.
     qoi.qoi_to_pixels(bitmap_1234, bitmap_1234_width * bitmap_1234_height, &bitmap_1234_pixels);
     qoi.qoi_to_pixels(START_GAME_qoi, text_start_game_width * text_start_game_height, &text_start_game_pixels);
     qoi.qoi_to_pixels(INSTRUCTIONS_qoi, text_instructions_width * text_instructions_height, &text_instructions_pixels);
@@ -311,14 +305,12 @@ pub fn main() anyerror!void {
     qoi.qoi_to_pixels(left_click_qoi, left_click_width * left_click_height, &left_click_pixels);
     qoi.qoi_to_pixels(right_click_qoi, right_click_width * right_click_height, &right_click_pixels);
 
-    //    dprint("{any}\n", .{bitmap_1234_pixels}); // @debug
-    
-    // Create a rl.Image s from which to generate the textures containing
-    // the bitmap numerals in the game.
+    // Create rl.Image s from which to generate the textures for the images
+    // in the game.
 
     // @magic constant alert!
-    // Each character in the bitmap has an x offset that is a multiple of 10.
-    // Each has the same height of 20.
+    // Each character in the "1234" bitmap has an x offset that is a multiple of 10.
+    // Each has height 20.
     
     var numeral_images     : [4] rl.Image = undefined;
     var start_game_image   :     rl.Image = undefined;
@@ -327,21 +319,21 @@ pub fn main() anyerror!void {
     var left_click_image   :     rl.Image = undefined;
     var right_click_image  :     rl.Image = undefined;
 
-    // Set dimensions of / initialize the images.
+    // Set dimensions of / initialize the numeral images.
     for (0..4) |i| {
         numeral_images[i] = rl.GenImageColor(20, 20, rlc(TRANSPARENT));
     }
-    
+    // Initialize the rest of the images.
     start_game_image   = rl.GenImageColor(text_start_game_header.image_width, text_start_game_header.image_height, rlc(TRANSPARENT));
     instructions_image = rl.GenImageColor(text_instructions_header.image_width, text_instructions_header.image_height, rlc(TRANSPARENT));
     mouse_image        = rl.GenImageColor(mouse_image_header.image_width, mouse_image_header.image_height, rlc(TRANSPARENT));
-    left_click_image  = rl.GenImageColor(left_click_header.image_width, left_click_header.image_height, rlc(TRANSPARENT));
+    left_click_image   = rl.GenImageColor(left_click_header.image_width, left_click_header.image_height, rlc(TRANSPARENT));
     right_click_image  = rl.GenImageColor(right_click_header.image_width, right_click_header.image_height, rlc(TRANSPARENT));
 
-    // Initialize the textures for '1', '2', '3', '4'.
+    // Create the images for the '1', '2', '3', '4' numerals.
     // Since the images have a width of 20, but the numerals have a width
     // of 10, when copying over the pixels from the bitmaps, we want to
-    // do += 5.
+    // offset the pixels we're copying by +5.
     // In the bitmap, the background pixels are BLACK, the numeral pixels are WHITE,
     // so below we set:
     //     the numeral pixels to:    numeral_color
@@ -356,12 +348,10 @@ pub fn main() anyerror!void {
             }
         }
     }
-    
-    for (0..4) |i| {
-        numeral_textures[i] = rl.LoadTextureFromImage(numeral_images[i]);
-    }
 
-    // Fill in the "START GAME" and "INSTRUCTIONS" Images and create their textures.
+    // Below we crudely copy over the pixels from our decoded .qoi images into Raylib's
+    // Image struct; there is likely a nicer way to do this than calling rl.ImageDrawPixel
+    // loads of times, but meh.
     for (0..text_start_game_width) |xi| {
         for (0..text_start_game_height) |yi| {
             const pixel_color = text_start_game_pixels[yi * text_start_game_width + xi];
@@ -378,8 +368,6 @@ pub fn main() anyerror!void {
         }
     }
 
-    // Iterate through the pixels of the mouse_image and store them in the raylib image.
-    // Similarly for the instructions images.
     for (0..mouse_image_width) |xi| {
         for (0..mouse_image_height) |yi| {
             const index = mouse_image_width * yi + xi;
@@ -399,12 +387,16 @@ pub fn main() anyerror!void {
             rl.ImageDrawPixel(&right_click_image, @intCast(xi), @intCast(yi), rlc(right_click_pixels[index]));             
         }
     }
-    
+
+    // Now, create raylib textures from the raylib images set above.
+    for (0..4) |i| {
+        numeral_textures[i] = rl.LoadTextureFromImage(numeral_images[i]);
+    }
     start_game_texture   = rl.LoadTextureFromImage(start_game_image);
     instructions_texture = rl.LoadTextureFromImage(instructions_image);
     mouse_texture        = rl.LoadTextureFromImage(mouse_image);
     left_click_texture   = rl.LoadTextureFromImage(left_click_image);
-    right_click_texture   = rl.LoadTextureFromImage(right_click_image);
+    right_click_texture  = rl.LoadTextureFromImage(right_click_image);
     
     // +----------------+
     // | Main game loop |
@@ -424,12 +416,66 @@ pub fn main() anyerror!void {
 }
 
 // Calculate the sizes of much of the global geometry.
+// We calculate the geometry of the elements in every screen here, this way
+// if during process_input_update_state() we need to change back to the (e.g.)
+// main menu we can instantly do that; the computation cost of these calculations
+// is minimal.
+
 fn calculate_geometry() void {
-    // Grid calculations.
-    const grid_pos       = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
-    const tile_length   = 0.1  * minimum_screen_dim;
-    const bar_thickness = 0.01 * minimum_screen_dim;
-    const total_length  = 5 * bar_thickness + 4 * tile_length;
+    // Main menu calculations.
+    //
+    // Size logic:
+    // *     Try setting the width of the INSTRUCTIONS button to 80% screen width.
+    // *     If the corresponding text height is > 10%, shrink so that
+    // *     its height is 10%.
+    // *     Use menu_text_height as the height of all main menu buttons.
+
+    const max_text_width     = 0.8 * screen_width;
+    const max_text_height    = 0.1 * screen_hidth;
+    const start_game_ratio   = @as(f32, @floatFromInt(text_start_game_height))   / @as(f32, @floatFromInt(text_start_game_width));
+    const instructions_ratio = @as(f32, @floatFromInt(text_instructions_height)) / @as(f32, @floatFromInt(text_instructions_width));
+
+    menu_text_height = instructions_ratio * max_text_width;
+    if (menu_text_height > max_text_height) {
+        menu_text_height = max_text_height;
+    }
+
+    const start_game_text_width   = menu_text_height / start_game_ratio;
+    const instructions_text_width = menu_text_height / instructions_ratio;
+
+    // Set menu button geometry.
+    const text_button_buffer         = 0.3 * menu_text_height;
+    const start_game_button_width    = start_game_text_width    + 2 * text_button_buffer;
+    const instructions_button_width  = instructions_text_width  + 2 * text_button_buffer;
+    const instructions_button_height = menu_text_height         + 2 * text_button_buffer;
+    const start_game_button_height   = menu_text_height         + 2 * text_button_buffer;
+
+    start_game_button.pos    = Vec2{0.5 * screen_width, 0.5 * screen_hidth - 1.0 * start_game_button_height};
+    start_game_button.width  = start_game_button_width;
+    start_game_button.height = start_game_button_height;
+
+    instructions_button.pos    = Vec2{0.5 * screen_width, 0.5 * screen_hidth + 1.0 * start_game_button_height};
+    instructions_button.width  = instructions_button_width;
+    instructions_button.height = instructions_button_height;
+
+    // Instruction screen calculations.
+    const mouse_height = 0.3 * screen_hidth;
+    instructions_geometry.disk_radius = 0.05 * mouse_height;
+    const mouse1_pos =  Vec2{0.25 * screen_width, 0.25 * screen_hidth};
+    const mouse2_pos =  Vec2{0.25 * screen_width, 0.75 * screen_hidth};
+    instructions_geometry.mouse1_pos   = mouse1_pos; 
+    instructions_geometry.mouse2_pos   = mouse2_pos; 
+    instructions_geometry.mouse_height = mouse_height;
+    instructions_geometry.disk1_pos    = mouse1_pos + Vec2{-0.15 * mouse_height, -0.15 * mouse_height};
+    instructions_geometry.disk2_pos    = mouse2_pos + Vec2{0.10 * mouse_height, -0.25 * mouse_height};
+    
+    // Puzzle screen calculations.
+    //     The size of the grid determines many of the other UI elements,
+    // so we calculate it first.
+    const grid_pos              = Vec2{0.5 * screen_width, 0.4 * screen_hidth};
+    const tile_length           = 0.1  * minimum_screen_dim;
+    const bar_thickness         = 0.01 * minimum_screen_dim;
+    const total_length          = 5 * bar_thickness + 4 * tile_length;
     grid_geometry.grid_pos      = grid_pos;
     grid_geometry.tile_length   = tile_length;
     grid_geometry.bar_thickness = bar_thickness;
@@ -446,7 +492,7 @@ fn calculate_geometry() void {
         }
     }
 
-    // Tile options calculations.
+    //     Tile options calculations.
     const background_rect_pos   = Vec2{0.5 * screen_width, 0.75 * screen_hidth};
     tile_options_geometry.background_rect_pos = background_rect_pos;
     const left_tile_option_pos  = background_rect_pos - Vec2{1.5 * (tile_length + bar_thickness), 0};
@@ -456,88 +502,36 @@ fn calculate_geometry() void {
         const tile_pos = left_tile_option_pos + Vec2{offset * (tile_length + bar_thickness), 0};
         tile_options_geometry.tile_positions[i] = tile_pos;
     }
-
-    // Menu button calculations.
-    // Try setting the width of the longest button (INSTRUCTIONS) to 80% screen width.
-    // If the corresponding text height is > 10%, shrink so that
-    // its height is 10%.
-    // Use menu_text_height as the height of all main menu buttons.
-
-    const max_text_width     = 0.8 * screen_width;
-    const max_text_height    = 0.1 * screen_hidth;
-    const start_game_ratio   = @as(f32, @floatFromInt(text_start_game_height))   / @as(f32, @floatFromInt(text_start_game_width));
-    const instructions_ratio = @as(f32, @floatFromInt(text_instructions_height)) / @as(f32, @floatFromInt(text_instructions_width));
-
-    menu_text_height = instructions_ratio * max_text_width;
-    if (menu_text_height > max_text_height) {
-        menu_text_height = max_text_height;
-    }
-
-    const start_game_text_width   = menu_text_height / start_game_ratio;
-    const instructions_text_width = menu_text_height / instructions_ratio;
-
-    // Set start_game_button and instructions_button position, widths etc.
-
-    const text_button_buffer         = 0.3 * menu_text_height;
-    const start_game_button_width    = start_game_text_width    + 2 * text_button_buffer;
-    const instructions_button_width  = instructions_text_width  + 2 * text_button_buffer;
-    const instructions_button_height = menu_text_height         + 2 * text_button_buffer;
-    const start_game_button_height   = menu_text_height         + 2 * text_button_buffer;
-
-    start_game_button.pos    = Vec2{0.5 * screen_width, 0.5 * screen_hidth - 1.0 * start_game_button_height};
-    start_game_button.width  = start_game_button_width;
-    start_game_button.height = start_game_button_height;
-
-    instructions_button.pos    = Vec2{0.5 * screen_width, 0.5 * screen_hidth + 1.0 * start_game_button_height};
-    instructions_button.width  = instructions_button_width;
-    instructions_button.height = instructions_button_height;
     
-    // Puzzle-solving screen buttons. 
-    // Arrow button calculations.
+    //     Buttons calculations.
     const pbutton_width  = 0.9  * tile_length;
     const pbutton_height = 0.75 * pbutton_width;
     const pbutton_posy   = pbutton_height;
-    
-    const arrow_button_width  =  pbutton_width;
-    const arrow_button_height =  pbutton_height;
+
+    //         Arrow button
     const left_posx  = grid_geometry.grid_tile_positions[0][0];
     const right_posx = grid_geometry.grid_tile_positions[3][0];
     
-    left_arrow_button.width  = arrow_button_width;
-    left_arrow_button.height = arrow_button_height;
+    left_arrow_button.width  = pbutton_width;
+    left_arrow_button.height = pbutton_height;
     left_arrow_button.pos    = .{left_posx, pbutton_posy};
 
-    right_arrow_button.width  = arrow_button_width;
-    right_arrow_button.height = arrow_button_height;
+    right_arrow_button.width  = pbutton_width;
+    right_arrow_button.height = pbutton_height;
     right_arrow_button.pos    = .{right_posx, pbutton_posy};
 
-    // Menu return button calculations.
-    const menu_return_button_width  = pbutton_width;
-    const menu_return_button_height = pbutton_height;
-    const menu_return_posx  = 0.5 * (menu_return_button_height + menu_return_button_width);
-    const menu_return_posy  = pbutton_posy;
-    menu_return_button.pos   = Vec2{menu_return_posx, menu_return_posy};
-    menu_return_button.width = arrow_button_width;
-    menu_return_button.height = arrow_button_height;
+    //         Menu return button
+    const menu_return_posx    = 0.5 * (pbutton_width + pbutton_height);
+    const menu_return_posy    = pbutton_posy;
+    menu_return_button.pos    = Vec2{menu_return_posx, menu_return_posy};
+    menu_return_button.width  = pbutton_width;
+    menu_return_button.height = pbutton_height;
 
-    // Grid reset
-    const reset_button_width  = pbutton_width;
-    const reset_button_height = pbutton_height;
-    const reset_button_posx  = grid_pos[0];
-    reset_button.pos = .{reset_button_posx, pbutton_posy};
-    reset_button.width = reset_button_width;
-    reset_button.height = reset_button_height;
-
-    // Instruction screen calculations.
-    const mouse_height = 0.3 * screen_hidth;
-    instructions_geometry.disk_radius = 0.05 * mouse_height;
-    const mouse1_pos =  Vec2{0.25 * screen_width, 0.25 * screen_hidth};
-    const mouse2_pos =  Vec2{0.25 * screen_width, 0.75 * screen_hidth};
-    instructions_geometry.mouse1_pos   = mouse1_pos; 
-    instructions_geometry.mouse2_pos   = mouse2_pos; 
-    instructions_geometry.mouse_height = mouse_height;
-    instructions_geometry.disk1_pos    = mouse1_pos + Vec2{-0.15 * mouse_height, -0.15 * mouse_height};
-    instructions_geometry.disk2_pos    = mouse2_pos + Vec2{0.10 * mouse_height, -0.25 * mouse_height};
+    //         Grid reset button 
+    const reset_button_posx = grid_pos[0];
+    reset_button.pos        = .{reset_button_posx, pbutton_posy};
+    reset_button.width      = pbutton_width;
+    reset_button.height     = pbutton_height;
 }
 
 fn process_input_update_state() void {
