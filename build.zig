@@ -32,8 +32,10 @@ const old_compiler_error_msg = "ERROR: Building the project requires the compile
     ++ compiler_version_min_str ++ " at minimum. " ++
     "The current compiler is: " ++ compiler_version_curr_str ++ ".";
 
-if (compiler_order == .gt) {
-    @compileError(old_compiler_error_msg);
+comptime {
+    if (compiler_order == .gt) {
+        @compileError(old_compiler_error_msg);
+    }
 }
 
 pub fn build(b: *std.Build) void {
