@@ -93,6 +93,6 @@ pub fn set_hover_status(pos : Vec2, button : *Button) void {
     const button_center = button.pos;
     const xpos = pos[0];
     const ypos = pos[1];
-    const in_rect = @fabs(xpos - button_center[0]) < 0.5 * button.width and @fabs(ypos - button_center[1]) < 0.5 * button.height;
+    const in_rect = @abs(xpos - button_center[0]) < 0.5 * button.width and @abs(ypos - button_center[1]) < 0.5 * button.height;
     button.hovering = in_rect;
 }

@@ -672,7 +672,7 @@ fn render() void {
     // Set the background color to win_color if the grid has been solved AND
     // the game mode is puzzles.
     const solved = levels_solved_status[current_level_index] and gamemode == .puzzles;
-    var background_color = if (solved) win_color else default_background_color;
+    const background_color = if (solved) win_color else default_background_color;
 
     rl.ClearBackground(rlc(background_color));
 
@@ -781,7 +781,7 @@ fn draw_tile(tile : Tile, pos : Vec2) void {
     const border_width = @max(0.05 * length, 5);
 
     const background_color = if (tile > 0) tile_fixed_background_color else tile_movable_background_color;
-    const texture_index : usize = std.math.absCast(tile) - 1; // @abs() not available in Zig 0.11.0
+    const texture_index = @as(usize, @intCast(@abs(tile))) - 1;
     const texture_ptr  = &numeral_textures[texture_index];
 
     shapes.draw_centered_rect(pos, length + border_width, length + border_width, grid_bar_color);
@@ -835,5 +835,5 @@ fn vec2_to_rl(vec : Vec2) rl.Vector2 {
 // Check if some position is over a tile.
 fn is_tile_hovered(cursor_pos : Vec2, tile_pos : Vec2) bool {
     const tl = grid_geometry.tile_length;
-    return @fabs(cursor_pos[0] - tile_pos[0]) < 0.5 * tl and @fabs(cursor_pos[1] - tile_pos[1]) < 0.5 * tl;
+    return @abs(cursor_pos[0] - tile_pos[0]) < 0.5 * tl and @abs(cursor_pos[1] - tile_pos[1]) < 0.5 * tl;
 }

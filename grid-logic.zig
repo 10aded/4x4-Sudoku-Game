@@ -35,28 +35,29 @@ pub fn is_grid_solved(grid : Grid) bool {
     var quads_unique = true;
     // Rows first.
     for (0..4) |i| {
-        const t1 = std.math.absCast(grid[4*i + 0]);
-        const t2 = std.math.absCast(grid[4*i + 1]);
-        const t3 = std.math.absCast(grid[4*i + 2]);
-        const t4 = std.math.absCast(grid[4*i + 3]);
+//        const texture_index = @as(usize, @intCast(@abs(tile))) - 1;
+        const t1 = @abs(grid[4*i + 0]);
+        const t2 = @abs(grid[4*i + 1]);
+        const t3 = @abs(grid[4*i + 2]);
+        const t4 = @abs(grid[4*i + 3]);
         const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
         rows_unique = rows_unique and unique;
     }
     // Cols next.
     for (0..4) |j| {
-        const t1 = std.math.absCast(grid[0  + j]);
-        const t2 = std.math.absCast(grid[4  + j]);
-        const t3 = std.math.absCast(grid[8  + j]);
-        const t4 = std.math.absCast(grid[12 + j]);
+        const t1 = @abs(grid[0  + j]);
+        const t2 = @abs(grid[4  + j]);
+        const t3 = @abs(grid[8  + j]);
+        const t4 = @abs(grid[12 + j]);
         const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
         cols_unique = cols_unique and unique;
     }
     // Quads.
     for ([4]usize{0,2,8,10}) |k| {
-        const t1 = std.math.absCast(grid[k]);
-        const t2 = std.math.absCast(grid[k + 1]);
-        const t3 = std.math.absCast(grid[k + 4]);
-        const t4 = std.math.absCast(grid[k + 5]);
+        const t1 = @abs(grid[k]);
+        const t2 = @abs(grid[k + 1]);
+        const t3 = @abs(grid[k + 4]);
+        const t4 = @abs(grid[k + 5]);
         const unique = t1 != t2 and t1 != t3 and t1 != t4 and t2 != t3 and t2 != t4 and t3 != t4;
         quads_unique = quads_unique and unique;
     }

@@ -59,7 +59,6 @@ pub fn addRaylib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     }
 
     // Raylib C files to add.
-    // TODO: Update to remove 0.12.0 compiler warning.
     const rcore_path     = std.Build.path(b, "./Raylib5/src/rcore.c");
     const utils_path     = std.Build.path(b, "./Raylib5/src/utils.c");
     const rshapes_path   = std.Build.path(b, "./Raylib5/src/rshapes.c");

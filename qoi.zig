@@ -40,8 +40,8 @@ pub fn comptime_header_parser( raw_image : [] const u8) Qoi_Header {
     // Parse the image header into the qoi_header struct.
     const qoi_header  = Qoi_Header{
         .magic_bytes  = [4]u8{raw_image[0], raw_image[1], raw_image[2], raw_image[3]},
-        .image_width  = std.mem.readIntSlice(u32, raw_image[4..8],  .Big), // (Thanks tw0st3p!)
-        .image_height = std.mem.readIntSlice(u32, raw_image[8..12], .Big),
+        .image_width  = std.mem.readInt(u32, raw_image[4..8],  .big), // (Thanks tw0st3p)!
+        .image_height = std.mem.readInt(u32, raw_image[8..12], .big),
         .channel      = raw_image[12],
         .colorspace   = raw_image[13],
     };

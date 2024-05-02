@@ -1,0 +1,16 @@
+This is a simple game of some 4x4 Sudoku puzzles, played with a mouse.
+
+The game is very short; solving the game's 11 puzzles should take less than 10 minutes.
+
+The source code of this app is available on GitHub at: https://github.com/10aded/4x4-Sudoku-Game
+
+The app's entire development (basically) was streamed on Twitch and uploaded to YouTube at:
+
+https://www.twitch.tv/10aded
+
+https://www.youtube.com/@10aded
+
+
+The game should not require any dependencies outside of OpenGL (for which drivers exist on most builds of Windows). If for whatever reason it does not launch, the source code is available on GitHub at: https://github.com/10aded/4x4-Sudoku-Game and can be built from scratch using the Zig 0.11.0 compiler.
+
+The game was created from scratch in Zig / raylib from the GitHub repo linked above. As such, only the Zig 0.11.0 compiler, and the GitHub project are needed to build the project.
