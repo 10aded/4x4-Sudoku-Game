@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) void {
 
     const raylib = addRaylib(b, target, optimize, false);
 
-    exe.addIncludePath(LazyPath.relative("./Raylib5/src"));
+    exe.addIncludePath(std.Build.path(b, "./Raylib5/src"));
 	exe.linkLibrary(raylib);
 
 	const run_cmd = b.addRunArtifact(exe);
@@ -54,21 +54,21 @@ pub fn addRaylib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     // No GLFW required on PLATFORM_DRM
     // DRM means Direct Rendering Manager.
     if (!platform_drm) {
-        const external_glfw_include = LazyPath.relative("./Raylib5/src/external/glfw/include");
+        const external_glfw_include = std.Build.path(b, "./Raylib5/src/external/glfw/include");
         raylib.addIncludePath(external_glfw_include);
     }
 
     // Raylib C files to add.
     // TODO: Update to remove 0.12.0 compiler warning.
-    const rcore_path     = LazyPath.relative("./Raylib5/src/rcore.c");
-    const utils_path     = LazyPath.relative("./Raylib5/src/utils.c");
-    const rshapes_path   = LazyPath.relative("./Raylib5/src/rshapes.c");
-    const rtext_path     = LazyPath.relative("./Raylib5/src/rtext.c");
-    const rtextures_path = LazyPath.relative("./Raylib5/src/rtextures.c");
+    const rcore_path     = std.Build.path(b, "./Raylib5/src/rcore.c");
+    const utils_path     = std.Build.path(b, "./Raylib5/src/utils.c");
+    const rshapes_path   = std.Build.path(b, "./Raylib5/src/rshapes.c");
+    const rtext_path     = std.Build.path(b, "./Raylib5/src/rtext.c");
+    const rtextures_path = std.Build.path(b, "./Raylib5/src/rtextures.c");
 
     // The game does not call neither audio nor model procedures.
-    //    const raudio_path    = LazyPath.relative("./Raylib5/src/raudio.c");
-    //    const rmodels_path   = LazyPath.relative("./Raylib5/src/rmodels.c");
+    //    const raudio_path    = std.Build.path(b, "./Raylib5/src/raudio.c");
+    //    const rmodels_path   = std.Build.path(b, "./Raylib5/src/rmodels.c");
     
     // Note: adding rmodels in the default raylib build.zig file turns off clang's
     // turns of one of the sanitizers via -fno-sanitize=undefined, this was
@@ -87,7 +87,7 @@ pub fn addRaylib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     //    raylib.addCSourceFile(CSourceFile{.file = raudio_path,    .flags = &raylib_flags});
     //    raylib.addCSourceFile(CSourceFile{.file = rmodels_path,   .flags = &raylib_flags});
     
-    const rglfw_path = LazyPath.relative("./Raylib5/src/rglfw.c");
+    const rglfw_path = std.Build.path(b, "./Raylib5/src/rglfw.c");
     
     switch (target.result.os.tag) {
         .windows => {
