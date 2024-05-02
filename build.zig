@@ -1,10 +1,43 @@
-const std    = @import("std");
+const std     = @import("std");
 const builtin = @import("builtin");
 
 const CSourceFile = std.Build.Module.CSourceFile;
 const LazyPath    = std.Build.LazyPath;
 
+// // Fail the build if the compiler is too old.
+
+// Note: There doesn't seem to be an easy way to prevent compilation for older
+// compilers; whether it's possible to do so is unclear in the current documentation (0.12.0)
+// , and other code that we have seen do this in Semantic Version seems way more
+// messy than it should be.
+
+const compiler_version_min  = @Vector(3, usize) {0, 12, 0};
+const compiler_version_curr = @Vector(3, usize) {builtin.zig_version.major, builtin.zig_version.minor, builtin.zig_version.patch};
+
+const compiler_version_min_str  = std.fmt.comptimePrint("{d}.{d}.{d}", .{compiler_version_min[0], compiler_version_min[1], compiler_version_min[2]});
+const compiler_version_curr_str = std.fmt.comptimePrint("{d}.{d}.{d}", .{compiler_version_curr[0], compiler_version_curr[1], compiler_version_curr[2]});
+
+pub fn order_compiler(left : @Vector(3, usize), right : @Vector(3, usize)) std.math.Order {
+    if (left[0] < right[0]) return .lt;
+    if (left[0] < right[0]) return .gt;
+    if (left[1] < right[1]) return .lt;
+    if (left[1] < right[1]) return .gt;
+    if (left[2] < right[2]) return .lt;
+    if (left[2] < right[2]) return .gt;
+    return .eq;
+}
+
+const compiler_order = order_compiler(compiler_version_min, compiler_version_curr);
+const old_compiler_error_msg = "ERROR: Building the project requires the complier version to be "
+    ++ compiler_version_min_str ++ " at minimum. " ++
+    "The current compiler is: " ++ compiler_version_curr_str ++ ".";
+
+if (compiler_order == .gt) {
+    @compileError(old_compiler_error_msg);
+}
+
 pub fn build(b: *std.Build) void {
+
 	const target = b.standardTargetOptions(.{});
 
 	const optimize = b.standardOptimizeOption(.{});
