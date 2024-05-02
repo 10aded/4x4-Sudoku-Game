@@ -28,7 +28,7 @@ pub fn order_compiler(left : @Vector(3, usize), right : @Vector(3, usize)) std.m
 }
 
 const compiler_order = order_compiler(compiler_version_min, compiler_version_curr);
-const old_compiler_error_msg = "ERROR: Building the project requires the complier version to be "
+const old_compiler_error_msg = "ERROR: Building the project requires the compiler version to be "
     ++ compiler_version_min_str ++ " at minimum. " ++
     "The current compiler is: " ++ compiler_version_curr_str ++ ".";
 

@@ -9,7 +9,7 @@
 //
 // run in the top directory of the project.
 //
-// Building the project requires the complier version to be 0.12.0 at minimum.
+// Building the project requires the compiler version to be 0.12.0 at minimum.
 // 
 // The project was originally built with the Zig 0.11.0 compiler, and
 // was updated to work with 0.12.0 of the compiler on 2 May 2024.
