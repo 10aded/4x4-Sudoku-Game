@@ -3,12 +3,16 @@
 //
 // Created by 10aded Jan 2024 --- Mar 2024.
 //
-// This project was compiled using the Zig compiler (version 0.11.0)
-// and built with the command:
+// The project is built with the command:
 //
 //     zig build -Doptimize=ReleaseFast
 //
 // run in the top directory of the project.
+//
+// Building the project requires the complier version to be 0.12.0 at minimum.
+// 
+// The project was originally built with the Zig 0.11.0 compiler, and
+// was updated to work with 0.12.0 of the compiler on 2 May 2024.
 //
 // The entire source code of this project is available on GitHub at:
 //
