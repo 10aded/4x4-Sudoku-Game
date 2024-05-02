@@ -1,7 +1,7 @@
 const std    = @import("std");
 const builtin = @import("builtin");
 
-const CSourceFile = std.Build.Step.Compile.CSourceFile;
+const CSourceFile = std.Build.Module.CSourceFile;
 const LazyPath    = std.Build.LazyPath;
 
 pub fn build(b: *std.Build) void {
@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) void {
 
 	b.installArtifact(exe);
 
-    var raylib = addRaylib(b, target, optimize, false);
+    const raylib = addRaylib(b, target, optimize, false);
 
     exe.addIncludePath(LazyPath.relative("./Raylib5/src"));
 	exe.linkLibrary(raylib);
@@ -37,7 +37,7 @@ pub fn build(b: *std.Build) void {
 
 // The function below is a modified (and simplified) version of `build.zig` included as part of the standard Raylib5 distribution in src/build.zig.
 // As such it (presumably) has the same licence as the rest of raylib.
-pub fn addRaylib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.builtin.OptimizeMode, platform_drm : bool) *std.Build.CompileStep {
+pub fn addRaylib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, platform_drm : bool) *std.Build.Step.Compile {
     const raylib_flags = [_][]const u8{
         "-std=gnu99",
         "-D_GNU_SOURCE",
@@ -59,6 +59,7 @@ pub fn addRaylib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.built
     }
 
     // Raylib C files to add.
+    // TODO: Update to remove 0.12.0 compiler warning.
     const rcore_path     = LazyPath.relative("./Raylib5/src/rcore.c");
     const utils_path     = LazyPath.relative("./Raylib5/src/utils.c");
     const rshapes_path   = LazyPath.relative("./Raylib5/src/rshapes.c");
@@ -88,7 +89,7 @@ pub fn addRaylib(b: *std.Build, target: std.zig.CrossTarget, optimize: std.built
     
     const rglfw_path = LazyPath.relative("./Raylib5/src/rglfw.c");
     
-    switch (target.getOsTag()) {
+    switch (target.result.os.tag) {
         .windows => {
             raylib.addCSourceFile(CSourceFile{.file = rglfw_path, .flags = &raylib_flags});
             raylib.linkSystemLibrary("winmm");
