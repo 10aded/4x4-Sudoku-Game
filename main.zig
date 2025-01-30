@@ -21,7 +21,7 @@
 // and was developed (almost) entirely on the Twitch channel 10aded. Copies of the
 // stream are available on YouTube at the @10aded channel.
 //
-// This project includes a copy of raylib, specifically v5.0 (commit number ae50bfa).
+// This project includes a copy of raylib, specifically v5.5 (commit number c1ab645).
 //
 // Raylib is created by github user Ray (@github handle raysan5) and available at:
 //
