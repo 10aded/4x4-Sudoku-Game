@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 
 // Fail the build if the compiler is too old.
 const cv = builtin.zig_version;
-const compiler_min   = @Vector(3, u32) {0, 13, 0};
+const compiler_min   = @Vector(3, u32) {0, 14, 0};
 const compiler_curr  = @Vector(3, u32) {cv.major, cv.minor, cv.patch};
 const compiler_order = order_compiler(compiler_min, compiler_curr);
 

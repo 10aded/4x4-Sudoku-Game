@@ -9,10 +9,10 @@
 //
 // run in the top directory of the project.
 //
-// Building the project requires the compiler version to be 0.12.0 at minimum.
+// Building the project requires the compiler version to be 0.14.0 at minimum.
 // 
 // The project was originally built with the Zig 0.11.0 compiler, and
-// was updated to work with version 0.13.0 of the compiler on 17 June 2024.
+// was updated to work with version 0.14.0 of the compiler on 22 March 2025.
 //
 // The entire source code of this project is available on GitHub at:
 //
@@ -21,7 +21,7 @@
 // and was developed (almost) entirely on the Twitch channel 10aded. Copies of the
 // stream are available on YouTube at the @10aded channel.
 //
-// This project includes a copy of raylib, specifically v5.5 (commit number c1ab645).
+// This project includes a copy of raylib, specifically v5.5+ (commit number 46cd07d).
 //
 // Raylib is created by github user Ray (@github handle raysan5) and available at:
 //
