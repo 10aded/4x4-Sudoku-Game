@@ -18,11 +18,14 @@ pub fn build(b: *std.Build) void {
 
 	const exe = b.addExecutable(.{
 		.name = "4x4-sudoku",
-		.root_source_file = b.path("main.zig"),
-		.target = target, .optimize = optimize,
+        .root_module = b.createModule(.{
+		    .root_source_file = b.path("main.zig"),
+		    .target = target,
+            .optimize = optimize,
+        }),
 	});
 
-    const raylib_dep = b.dependency("raylib_5_5", .{
+    const raylib_dep = b.dependency("raylib_5_5_extra", .{
         .target = target,
         .optimize = optimize,
     });

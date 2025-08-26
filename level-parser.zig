@@ -18,12 +18,6 @@ pub fn parse_levels() [NUMBER_OF_LEVELS] Grid {
     @setEvalBranchQuota(5000);
 
     var level_data : [NUMBER_OF_LEVELS] Grid = undefined;
-    
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    const ally = arena.allocator();
-
-    var line_list = std.ArrayList([] const u8).init(ally);
-    defer line_list.deinit();
 
     var grid_row_number     : usize = 0;
     var current_level       : Grid  = undefined;

@@ -1,33 +1,28 @@
 .{
     .name = .sudoku_puzzles_4x4,
-    .version = "1.2.0",
-    .fingerprint = 0x6fa4f260a663e542,  // Changing this has security and trust implications.
-    .minimum_zig_version = "0.14.0",
+    .version = "1.3.0",
+    .fingerprint = 0x6fa4f260a663e542, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.15.1",
     .dependencies = .{
-       //
-       // We've copied in a simplified version of Raylib 5.5 into this project.
-       // By simplification we've just deleted unnecessary files, otherwise
-       // it is the same as that available on github at:
-       //
-       // https://github.com/raysan5/raylib/releases
-       //
-       .raylib_5_5 = .{ .path = "./deps/raylib_5_5_plus" },
+        .raylib_5_5_extra = .{
+            .url = "git+https://github.com/raysan5/raylib.git#71037033137e692f1a39003e06f570fa2744dce3",
+            .hash = "raylib-5.5.0-whq8uHhOxwSnHCxXCBw6a7cZ1e-EnFJVRI-U6mp3M6Fq",
+        },
     },
     .paths = .{
-       "Images", 
-       "QOI-Tests",   
-       "Text-1234",  
-       "build.zig", 
-       "build.zig.zon",   
-       "buttons.zig",    
-       "grid-logic.zig",
-       "level-parser.zig",
-       "levels.txt",  
-       "main.zig",   
-       "qoi.zig",   
-       "README.md",
-       "screenshot.png",  
-       "shapes.zig",     
+        "Images",
+        "QOI-Tests",
+        "Text-1234",
+        "build.zig",
+        "build.zig.zon",
+        "buttons.zig",
+        "grid-logic.zig",
+        "level-parser.zig",
+        "levels.txt",
+        "main.zig",
+        "qoi.zig",
+        "README.md",
+        "screenshot.png",
+        "shapes.zig",
     },
 }
- 
